@@ -89,12 +89,24 @@ void gpgpu_functional_sim_config::ptx_set_tex_cache_linesize(unsigned linesize)
    m_texcache_linesize = linesize;
 }
 
+////////////////my editCAA
+unsigned char *global_memory = NULL;
+unsigned char *cache_memory = NULL;
+ ////////////////my editCAA
+
 gpgpu_t::gpgpu_t( const gpgpu_functional_sim_config &config )
     : m_function_model_config(config)
 {
    m_global_mem = new memory_space_impl<8192>("global",64*1024);
    m_tex_mem = new memory_space_impl<8192>("tex",64*1024);
    m_surf_mem = new memory_space_impl<8192>("surf",64*1024);
+
+   ////////////////my editCAA
+   m_cache_mem = new memory_space_impl<8192>("cache",64*1024);
+
+   global_memory = (unsigned char*)(m_global_mem);
+   cache_memory = (unsigned char*)(m_cache_mem);
+    ////////////////my editCAA
 
    m_dev_malloc=GLOBAL_HEAP_START; 
 
@@ -327,7 +339,7 @@ void warp_inst_t::generate_mem_accesses()
         abort();
     }
 
-    if( cache_block_size ) {
+    if( cache_block_size ) {/////////////for tex_space and const_space only
         assert( m_accessq.empty() );
         mem_access_byte_mask_t byte_mask; 
         std::map<new_addr_type,active_mask_t> accesses; // block address -> set of thread offsets in warp
@@ -338,12 +350,17 @@ void warp_inst_t::generate_mem_accesses()
             new_addr_type addr = m_per_scalar_thread[thread].memreqaddr[0];
             unsigned block_address = line_size_based_tag_func(addr,cache_block_size);
             accesses[block_address].set(thread);
-            unsigned idx = addr-block_address; 
+            unsigned idx = addr-block_address;//problematic if more than one accesses
             for( unsigned i=0; i < data_size; i++ ) 
                 byte_mask.set(idx+i);
         }
-        for( a=accesses.begin(); a != accesses.end(); ++a ) 
-            m_accessq.push_back( mem_access_t(access_type,a->first,cache_block_size,is_write,a->second,byte_mask) );
+        for( a=accesses.begin(); a != accesses.end(); ++a ) {
+        ////////////////////////////myedit prediction
+        	//m_accessq.push_back( mem_access_t(access_type,a->first,cache_block_size,is_write,a->second,byte_mask) );
+        	std::vector<unsigned> empty_correspondance(32, 0);
+            m_accessq.push_back( mem_access_t(access_type,a->first,cache_block_size,is_write,a->second,byte_mask, 0, empty_correspondance) );/////////////for tex_space and const_space only
+        }
+        ////////////////////////////myedit prediction
     }
 
     if ( space.get_type() == global_space ) {
@@ -391,6 +408,7 @@ void warp_inst_t::memory_coalescing_arch_13( bool is_write, mem_access_type acce
                 new_addr_type addr = m_per_scalar_thread[thread].memreqaddr[access];
                 unsigned block_address = line_size_based_tag_func(addr,segment_size);
                 unsigned chunk = (addr&127)/32; // which 32-byte chunk within in a 128-byte chunk does this thread access?
+                //problematic if segment_size is not 128
                 transaction_info &info = subwarp_transactions[block_address];
 
                 // can only write to one segment
@@ -399,8 +417,13 @@ void warp_inst_t::memory_coalescing_arch_13( bool is_write, mem_access_type acce
                 info.chunks.set(chunk);
                 info.active.set(thread);
                 unsigned idx = (addr&127);
+                //problematic if segment_size is not 128
                 for( unsigned i=0; i < data_size_coales; i++ )
                     info.bytes.set(idx+i);
+
+                ////////////////////////////myedit prediction
+                info.thread_correspondance[idx/4] = thread + 1;//1 to 32, 0 means not set.
+                ////////////////////////////myedit prediction
             }
         }
 
@@ -408,10 +431,13 @@ void warp_inst_t::memory_coalescing_arch_13( bool is_write, mem_access_type acce
         std::map< new_addr_type, transaction_info >::iterator t;
         for( t=subwarp_transactions.begin(); t !=subwarp_transactions.end(); t++ ) {
             new_addr_type addr = t->first;
-            const transaction_info &info = t->second;
 
+            ////////////////////////////myedit prediction
+            //const transaction_info &info = t->second;
+            transaction_info &info = t->second;
+            info.is_atomic = 0;
+            ////////////////////////////myedit prediction
             memory_coalescing_arch_13_reduce_and_send(is_write, access_type, info, addr, segment_size);
-
         }
     }
 }
@@ -452,6 +478,7 @@ void warp_inst_t::memory_coalescing_arch_13_atomic( bool is_write, mem_access_ty
            transaction_info* info;
            for(it=subwarp_transactions[block_address].begin(); it!=subwarp_transactions[block_address].end(); it++) {
               unsigned idx = (addr&127);
+              //problematic if segment_size is not 128
               if(not it->test_bytes(idx,idx+data_size-1)) {
                  new_transaction = false;
                  info = &(*it);
@@ -479,12 +506,24 @@ void warp_inst_t::memory_coalescing_arch_13_atomic( bool is_write, mem_access_ty
        for( t_list=subwarp_transactions.begin(); t_list !=subwarp_transactions.end(); t_list++ ) {
            // For each block addr
            new_addr_type addr = t_list->first;
-           const std::list<transaction_info>& transaction_list = t_list->second;
+           ////////////////////////////myedit prediction
+           //const std::list<transaction_info>& transaction_list = t_list->second;
+           std::list<transaction_info>& transaction_list = t_list->second;
+           ////////////////////////////myedit prediction
 
-           std::list<transaction_info>::const_iterator t;
+           ////////////////////////////myedit prediction
+           //std::list<transaction_info>::const_iterator t;
+           std::list<transaction_info>::iterator t;
+           ////////////////////////////myedit prediction
            for(t=transaction_list.begin(); t!=transaction_list.end(); t++) {
                // For each transaction
-               const transaction_info &info = *t;
+
+               ////////////////////////////myedit prediction
+        	   //const transaction_info &info = *t;
+        	   transaction_info &info = *t;
+               info.is_atomic = 1;
+               ////////////////////////////myedit prediction
+
                memory_coalescing_arch_13_reduce_and_send(is_write, access_type, info, addr, segment_size);
            }
        }
@@ -540,7 +579,10 @@ void warp_inst_t::memory_coalescing_arch_13_reduce_and_send( bool is_write, mem_
            assert(lower_half_used && upper_half_used);
        }
    }
-   m_accessq.push_back( mem_access_t(access_type,addr,size,is_write,info.active,info.bytes) );
+   ////////////////////////////myedit prediction
+   //m_accessq.push_back( mem_access_t(access_type,addr,size,is_write,info.active,info.bytes) );
+   m_accessq.push_back( mem_access_t(access_type,addr,size,is_write,info.active,info.bytes, info.is_atomic, info.thread_correspondance) );
+   ////////////////////////////myedit prediction
 }
 
 void warp_inst_t::completed( unsigned long long cycle ) const 
@@ -552,6 +594,10 @@ void warp_inst_t::completed( unsigned long long cycle ) const
 
 
 unsigned kernel_info_t::m_next_uid = 1;
+
+/////////////////////my editdebug
+//extern std::FILE * debug1;
+/////////////////////my editdebug
 
 kernel_info_t::kernel_info_t( dim3 gridDim, dim3 blockDim, class function_info *entry )
 {
@@ -565,6 +611,12 @@ kernel_info_t::kernel_info_t( dim3 gridDim, dim3 blockDim, class function_info *
     m_num_cores_running=0;
     m_uid = m_next_uid++;
     m_param_mem = new memory_space_impl<8192>("param",64*1024);
+
+    /////////////////////my editdebug
+    //std::fprintf(debug1,"m_block_dim, x:%d, y:%d, z:%d. gridDim, x:%d, y:%d, z:%d\n",
+ 	//		  m_block_dim.x, m_block_dim.y, m_block_dim.z,
+ 	//		  gridDim.x, gridDim.y, gridDim.z);
+    /////////////////////my editdebug
 }
 
 kernel_info_t::~kernel_info_t()

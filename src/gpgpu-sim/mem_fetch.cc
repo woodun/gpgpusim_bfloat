@@ -61,6 +61,10 @@ mem_fetch::mem_fetch( const mem_access_t &access,
    m_status_change = gpu_sim_cycle + gpu_tot_sim_cycle;
    m_mem_config = config;
    icnt_flit_size = config->icnt_flit_size;
+
+	/////////////////myedit AMC
+	is_approx = 0;
+	/////////////////myedit AMC
 }
 
 mem_fetch::~mem_fetch()

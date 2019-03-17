@@ -31,6 +31,10 @@
 #include "dram.h"
 #include "../abstract_hardware_model.h"
 
+////////////myedit AMC
+#include "../approximate_memory_controller.h"
+////////////myedit AMC
+
 #include <list>
 #include <queue>
 
@@ -92,6 +96,16 @@ public:
 
    unsigned get_mpid() const { return m_id; }
 
+   ////////////myedit amc
+   void set_sub_partition1(){
+	   m_dram->subchannel1_warmed_up = 1;
+   }
+
+   void set_sub_partition2(){
+	   m_dram->subchannel2_warmed_up = 1;
+   }
+   ////////////myedit amc
+
 private: 
 
    unsigned m_id;
@@ -144,7 +158,12 @@ private:
 class memory_sub_partition
 {
 public:
-   memory_sub_partition( unsigned sub_partition_id, const struct memory_config *config, class memory_stats_t *stats );
+
+   //////////////myedit AMC
+   //memory_sub_partition( unsigned sub_partition_id, const struct memory_config *config, class memory_stats_t *stats );
+   memory_sub_partition( unsigned sub_partition_id, const struct memory_config *config, class memory_stats_t *stats, class memory_partition_unit* m_memory_partition_unit);
+   //////////////myedit AMC
+
    ~memory_sub_partition(); 
 
    unsigned get_id() const { return m_id; } 
@@ -176,6 +195,10 @@ public:
 
    void accumulate_L2cache_stats(class cache_stats &l2_stats) const;
    void get_L2cache_sub_stats(struct cache_sub_stats &css) const;
+
+   //////////////myedit AMC
+   class memory_partition_unit* m_partition;
+   //////////////myedit AMC
 
 private:
 // data

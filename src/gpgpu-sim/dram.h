@@ -42,146 +42,212 @@
 
 class dram_req_t {
 public:
-   dram_req_t( class mem_fetch *data );
+	dram_req_t(class mem_fetch *data);
 
-   unsigned int row;
-   unsigned int col;
-   unsigned int bk;
-   unsigned int nbytes;
-   unsigned int txbytes;
-   unsigned int dqbytes;
-   unsigned int age;
-   unsigned int timestamp;
-   unsigned char rw;    //is the request a read or a write?
-   unsigned long long int addr;
-   unsigned int insertion_time;
-   class mem_fetch * data;
+	unsigned int row;
+	unsigned int col;
+	unsigned int bk;
+	unsigned int nbytes;
+	unsigned int txbytes;
+	unsigned int dqbytes;
+	unsigned int age;
+	unsigned int timestamp;
+	unsigned char rw; //is the request a read or a write?
+	unsigned long long int addr;
+	unsigned int insertion_time;
+	class mem_fetch * data;
+
+	//////////////myedit AMC
+	unsigned int delay_time;
+	unsigned int is_echo;
+	unsigned int row_size;
+	unsigned int read_only;
+	unsigned int subpar1_exists;
+	unsigned int subpar2_exists;
+	unsigned int subpartition_id;
+	//////////////myedit AMC
 };
 
-struct bankgrp_t
-{
+struct bankgrp_t {
 	unsigned int CCDLc;
 	unsigned int RTPLc;
 };
 
-struct bank_t
-{
-   unsigned int RCDc;
-   unsigned int RCDWRc;
-   unsigned int RASc;
-   unsigned int RPc;
-   unsigned int RCc;
-   unsigned int WTPc; // write to precharge
-   unsigned int RTPc; // read to precharge
+struct bank_t {
+	unsigned int RCDc;
+	unsigned int RCDWRc;
+	unsigned int RASc;
+	unsigned int RPc;
+	unsigned int RCc;
+	unsigned int WTPc; // write to precharge
+	unsigned int RTPc; // read to precharge
 
-   unsigned char rw;    //is the bank reading or writing?
-   unsigned char state; //is the bank active or idle?
-   unsigned int curr_row;
+	unsigned char rw; //is the bank reading or writing?
+	unsigned char state; //is the bank active or idle?
+	unsigned int curr_row;
 
-   dram_req_t *mrq;
+	dram_req_t *mrq;
 
-   unsigned int n_access;
-   unsigned int n_writes;
-   unsigned int n_idle;
+	unsigned int n_access;
+	unsigned int n_writes;
+	unsigned int n_idle;
 
-   unsigned int bkgrpindex;
+	unsigned int bkgrpindex;
 };
 
 struct mem_fetch;
 
-class dram_t 
-{
+////////my editprofile
+extern double bwutil;
+extern double bwutil_global_read;
+extern double bwutil_global_write;
+extern unsigned int n_cmd;
+extern unsigned int n_activity;
+extern unsigned int n_nop;
+extern unsigned int n_act;
+extern unsigned int n_pre;
+extern unsigned int n_rd;
+extern unsigned int n_wr;
+extern unsigned int n_req;
+////////my editprofile
+
+////////////myedit amc
+extern double temp_bwutil; //////////pf
+extern double temp_bwutil_global_read; //////////pf
+extern double temp_bwutil_global_write; //////////pf
+
+extern double act_bwutil;
+extern double act_bwutil_gread;
+extern double act_bwutil_gwrite;
+
+extern double req_bwutil;
+extern double req_bwutil_gread;
+extern double req_bwutil_gwrite;
+
+extern unsigned int act_cmd; ///////cycles in window
+extern unsigned int req_cmd; ///////cycles in window
+////////////myedit amc
+
+class dram_t {
 public:
-   dram_t( unsigned int parition_id, const struct memory_config *config, class memory_stats_t *stats, 
-           class memory_partition_unit *mp );
+	dram_t(unsigned int parition_id, const struct memory_config *config,
+			class memory_stats_t *stats, class memory_partition_unit *mp);
 
-   bool full() const;
-   void print( FILE* simFile ) const;
-   void visualize() const;
-   void print_stat( FILE* simFile );
-   unsigned que_length() const; 
-   bool returnq_full() const;
-   unsigned int queue_limit() const;
-   void visualizer_print( gzFile visualizer_file );
+	bool full() const;
+	void print(FILE* simFile) const;
+	void visualize() const;
+	void print_stat(FILE* simFile);
+	unsigned que_length() const;
+	bool returnq_full() const;
+	unsigned int queue_limit() const;
+	void visualizer_print(gzFile visualizer_file);
 
-   class mem_fetch* return_queue_pop();
-   class mem_fetch* return_queue_top();
-   void push( class mem_fetch *data );
-   void cycle();
-   void dram_log (int task);
+	class mem_fetch* return_queue_pop();
+	class mem_fetch* return_queue_top();
+	void push(class mem_fetch *data);
+	void cycle();
+	void dram_log(int task);
 
-   class memory_partition_unit *m_memory_partition_unit;
-   unsigned int id;
+	class memory_partition_unit *m_memory_partition_unit;
+	unsigned int id;
 
-   // Power Model
-   void set_dram_power_stats(unsigned &cmd,
-								unsigned &activity,
-								unsigned &nop,
-								unsigned &act,
-								unsigned &pre,
-								unsigned &rd,
-								unsigned &wr,
-								unsigned &req) const;
+	// Power Model
+	void set_dram_power_stats(unsigned &cmd, unsigned &activity, unsigned &nop,
+			unsigned &act, unsigned &pre, unsigned &rd, unsigned &wr,
+			unsigned &req) const;
+
+	////////////myedit amc
+	unsigned subchannel1_warmed_up;
+	unsigned subchannel2_warmed_up;
+	////////////myedit amc
 
 private:
-   void scheduler_fifo();
-   void scheduler_frfcfs();
+	void scheduler_fifo();
+	void scheduler_frfcfs();
 
-   const struct memory_config *m_config;
+	const struct memory_config *m_config;
 
-   bankgrp_t **bkgrp;
+	bankgrp_t **bkgrp;
 
-   bank_t **bk;
-   unsigned int prio;
+	bank_t **bk;
+	unsigned int prio;
 
-   unsigned int RRDc;
-   unsigned int CCDc;
-   unsigned int RTWc;   //read to write penalty applies across banks
-   unsigned int WTRc;   //write to read penalty applies across banks
+	unsigned int RRDc;
+	unsigned int CCDc;
+	unsigned int RTWc; //read to write penalty applies across banks
+	unsigned int WTRc; //write to read penalty applies across banks
 
-   unsigned char rw; //was last request a read or write? (important for RTW, WTR)
+	unsigned char rw; //was last request a read or write? (important for RTW, WTR)
 
-   unsigned int pending_writes;
+	unsigned int pending_writes;
 
-   fifo_pipeline<dram_req_t> *rwq;
-   fifo_pipeline<dram_req_t> *mrqq;
-   //buffer to hold packets when DRAM processing is over
-   //should be filled with dram clock and popped with l2or icnt clock 
-   fifo_pipeline<mem_fetch> *returnq;
+	fifo_pipeline<dram_req_t> *rwq;
+	fifo_pipeline<dram_req_t> *mrqq;
+	//buffer to hold packets when DRAM processing is over
+	//should be filled with dram clock and popped with l2or icnt clock
+	fifo_pipeline<mem_fetch> *returnq;
 
-   unsigned int dram_util_bins[10];
-   unsigned int dram_eff_bins[10];
-   unsigned int last_n_cmd, last_n_activity, last_bwutil;
+	unsigned int dram_util_bins[10];
+	unsigned int dram_eff_bins[10];
 
-   unsigned int n_cmd;
-   unsigned int n_activity;
-   unsigned int n_nop;
-   unsigned int n_act;
-   unsigned int n_pre;
-   unsigned int n_rd;
-   unsigned int n_wr;
-   unsigned int n_req;
-   unsigned int max_mrqs_temp;
+	unsigned int last_n_cmd, last_n_activity, last_bwutil;
 
-   unsigned int bwutil;
-   unsigned int max_mrqs;
-   unsigned int ave_mrqs;
+	////////my editprofile
+	/*
+	 unsigned int n_cmd;
+	 unsigned int n_activity;
+	 unsigned int n_nop;
+	 unsigned int n_act;
+	 unsigned int n_pre;
+	 unsigned int n_rd;
+	 unsigned int n_wr;
+	 unsigned int n_req;
+	 */
+	////////my editprofile
+	unsigned int max_mrqs_temp;
 
-   class frfcfs_scheduler* m_frfcfs_scheduler;
+	////////my editHW2
+	//unsigned int bwutil;
+	//double bwutil;
+	////////my editHW2
+	unsigned int max_mrqs;
+	unsigned int ave_mrqs;
 
-   unsigned int n_cmd_partial;
-   unsigned int n_activity_partial;
-   unsigned int n_nop_partial; 
-   unsigned int n_act_partial; 
-   unsigned int n_pre_partial; 
-   unsigned int n_req_partial;
-   unsigned int ave_mrqs_partial;
-   unsigned int bwutil_partial;
+	class frfcfs_scheduler* m_frfcfs_scheduler;
 
-   struct memory_stats_t *m_stats;
-   class Stats* mrqq_Dist; //memory request queue inside DRAM  
+	unsigned int n_cmd_partial;
+	unsigned int n_activity_partial;
+	unsigned int n_nop_partial;
+	unsigned int n_act_partial;
+	unsigned int n_pre_partial;
+	unsigned int n_req_partial;
+	unsigned int ave_mrqs_partial;
+	double bwutil_partial;
 
-   friend class frfcfs_scheduler;
+	////////////myedit amc
+	double bwutil_partial_gread;	//per DRAM
+	double bwutil_partial_gwrite;	//per DRAM
+
+	double temp_bwutil_partial;	//////////pf
+	double temp_bwutil_partial_gread;	//////////pf
+	double temp_bwutil_partial_gwrite;	//////////pf
+
+	double act_bwutil_partial;	//per DRAM
+	double act_bwutil_partial_gread;	//per DRAM
+	double act_bwutil_partial_gwrite;	//per DRAM
+
+	double req_bwutil_partial;	//per DRAM
+	double req_bwutil_partial_gread;	//per DRAM
+	double req_bwutil_partial_gwrite;	//per DRAM
+
+	unsigned int act_cmd_partial;	///////cycles in window
+	unsigned int req_cmd_partial;	///////cycles in window
+	////////////myedit amc
+
+	struct memory_stats_t *m_stats;
+	class Stats* mrqq_Dist;	//memory request queue inside DRAM
+
+	friend class frfcfs_scheduler;
 };
 
 #endif /*DRAM_H*/

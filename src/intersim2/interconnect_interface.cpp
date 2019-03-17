@@ -178,7 +178,8 @@ void InterconnectInterface::Push(unsigned input_deviceID, unsigned output_device
     case WRITE_REQUEST: packet_type = Flit::WRITE_REQUEST  ;break;
     case READ_REPLY:    packet_type = Flit::READ_REPLY     ;break;
     case WRITE_ACK:     packet_type = Flit::WRITE_REPLY    ;break;
-    default: assert (0);
+    default: printf("mf_type=%d", mf->get_type());
+    assert (0);
   }
 
   //TODO: _include_queuing ?
@@ -364,7 +365,7 @@ Flit* InterconnectInterface::GetEjectedFlit(int subnet, int node)
 
 void InterconnectInterface::_CreateBuffer()
 {
-  unsigned nodes = _n_shader + _n_mem;
+  unsigned nodes = _net[0]->NumNodes();
 
   _boundary_buffer.resize(_subnets);
   _ejection_buffer.resize(_subnets);

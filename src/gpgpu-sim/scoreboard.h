@@ -34,32 +34,56 @@
 #ifndef SCOREBOARD_H_
 #define SCOREBOARD_H_
 
+/////////////////////myeditcontroller
+#define RF_LAT 0
+/////////////////////myeditcontroller
+
 #include "../abstract_hardware_model.h"
 
 class Scoreboard {
 public:
-    Scoreboard( unsigned sid, unsigned n_warps );
+	Scoreboard(unsigned sid, unsigned n_warps);
 
-    void reserveRegisters(const warp_inst_t *inst);
-    void releaseRegisters(const warp_inst_t *inst);
-    void releaseRegister(unsigned wid, unsigned regnum);
+	void reserveRegisters(const warp_inst_t *inst);
+	void releaseRegisters(const warp_inst_t *inst);
+	void releaseRegister(unsigned wid, unsigned regnum);
 
-    bool checkCollision(unsigned wid, const inst_t *inst) const;
-    bool pendingWrites(unsigned wid) const;
-    void printContents() const;
-    const bool islongop(unsigned warp_id, unsigned regnum);
+	bool checkCollision(unsigned wid, const inst_t *inst) const;
+	bool pendingWrites(unsigned wid) const;
+	void printContents() const;
+	const bool islongop(unsigned warp_id, unsigned regnum);
+
+	///////////////////////////////////////////////////////////////////////////////myeditCompress
+	struct finished_inst { //for collector decompresser read
+		finished_inst() :
+				latency(-1) {
+		}
+
+		int latency;
+		unsigned out_release[4];
+		unsigned warp_id;
+	};
+
+	void init_latency(int latency);
+	void scoreboard_step();
+	///////////////////////////////////////////////////////////////////////////////myeditCompress
 private:
-    void reserveRegister(unsigned wid, unsigned regnum);
-    int get_sid() const { return m_sid; }
+	void reserveRegister(unsigned wid, unsigned regnum);
+	int get_sid() const {
+		return m_sid;
+	}
 
-    unsigned m_sid;
+	unsigned m_sid;
+	///////////////////////////////////////////////////////////////////////////////myeditCompress
+	std::vector<finished_inst> release_pipeline;
+	int release_latency;
+	///////////////////////////////////////////////////////////////////////////////myeditCompress
 
-    // keeps track of pending writes to registers
-    // indexed by warp id, reg_id => pending write count
-    std::vector< std::set<unsigned> > reg_table;
-    //Register that depend on a long operation (global, local or tex memory)
-    std::vector< std::set<unsigned> > longopregs;
+	// keeps track of pending writes to registers
+	// indexed by warp id, reg_id => pending write count
+	std::vector<std::set<unsigned> > reg_table;
+	//Register that depend on a long operation (global, local or tex memory)
+	std::vector<std::set<unsigned> > longopregs;
 };
-
 
 #endif /* SCOREBOARD_H_ */

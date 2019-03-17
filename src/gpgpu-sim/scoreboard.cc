@@ -30,101 +30,178 @@
 #include "../cuda-sim/ptx_sim.h"
 #include "shader_trace.h"
 
-
 //Constructor
-Scoreboard::Scoreboard( unsigned sid, unsigned n_warps )
-: longopregs()
-{
+Scoreboard::Scoreboard(unsigned sid, unsigned n_warps) :
+		longopregs() {
 	m_sid = sid;
 	//Initialize size of table
 	reg_table.resize(n_warps);
 	longopregs.resize(n_warps);
 }
 
+///////////////////////////////////////////////////////////////////////////////myeditCompress
+
+void Scoreboard::init_latency(int latency) {
+	release_latency = latency;
+	release_pipeline.resize(3 * (release_latency + 1));
+
+	for (int i = release_pipeline.size() - 1; i >= 0; i--) {
+		release_pipeline[i] = finished_inst();
+	}
+}
+
+void Scoreboard::scoreboard_step() {
+	for (unsigned i = 0; i < release_pipeline.size(); i++) {
+		if (release_pipeline[i].latency == 0) {
+			release_pipeline[i].latency = -1;
+
+			for (unsigned r = 0; r < 4; r++) {
+				if (release_pipeline[i].out_release[r] > 0) {
+					SHADER_DPRINTF( SCOREBOARD,
+							"Register Released - warp:%d, reg: %d\n", release_pipeline[i].warp_id, release_pipeline[i].out_release[r]);
+					releaseRegister(release_pipeline[i].warp_id,
+							release_pipeline[i].out_release[r]);
+					longopregs[release_pipeline[i].warp_id].erase(
+							release_pipeline[i].out_release[r]);
+				}
+			}
+		}
+
+		if (release_pipeline[i].latency > 0) {
+			release_pipeline[i].latency = release_pipeline[i].latency - 1;
+		}
+	}
+}
+///////////////////////////////////////////////////////////////////////////////myeditCompress
+
+// Release registers for an instruction
+void Scoreboard::releaseRegisters(const class warp_inst_t *inst) {
+#if RF_LAT == 0
+	for (unsigned r = 0; r < 4; r++) {
+		if (inst->out[r] > 0) {
+			SHADER_DPRINTF( SCOREBOARD,
+					"Register Released - warp:%d, reg: %d\n", inst->warp_id(), inst->out[r]);
+			releaseRegister(inst->warp_id(), inst->out[r]);
+			longopregs[inst->warp_id()].erase(inst->out[r]);
+		}
+	}
+#else
+	////////////////Haonanedit
+	/*
+	 ///////////////////////////////////////////////////////////////////////////////myeditCompress
+	 for (unsigned i = 0; i < release_pipeline.size(); i++) {
+	 if (release_pipeline[i].latency == -1) {
+	 release_pipeline[i].latency = release_latency;
+	 for (unsigned r = 0; r < 4; r++) {
+	 release_pipeline[i].out_release[r] = inst->out[r];
+	 }
+	 release_pipeline[i].warp_id = inst->warp_id();
+	 return;
+	 }
+	 }
+
+	 assert(0 && "release pipeline full");
+	 ///////////////////////////////////////////////////////////////////////////////myeditCompress
+	 */
+
+	bool divergent = false;
+	for (unsigned i = 0; i < 32; i++) {
+		if (!inst->active(i)) {
+			divergent = true;
+			break;
+		}
+	}
+
+	if (!divergent) {
+		for (unsigned i = 0; i < release_pipeline.size(); i++) {
+			if (release_pipeline[i].latency == -1) {
+				release_pipeline[i].latency = release_latency;
+				for (unsigned r = 0; r < 4; r++) {
+					release_pipeline[i].out_release[r] = inst->out[r];
+				}
+				release_pipeline[i].warp_id = inst->warp_id();
+				return;
+			}
+		}
+		assert(0 && "release pipeline full");
+	} else {
+		for (unsigned r = 0; r < 4; r++) {
+			if (inst->out[r] > 0) {
+				SHADER_DPRINTF( SCOREBOARD,
+						"Register Released - warp:%d, reg: %d\n", inst->warp_id(), inst->out[r]);
+				releaseRegister(inst->warp_id(), inst->out[r]);
+				longopregs[inst->warp_id()].erase(inst->out[r]);
+			}
+		}
+	}
+	////////////////Haonanedit
+#endif
+}
+
 // Print scoreboard contents
-void Scoreboard::printContents() const
-{
+void Scoreboard::printContents() const {
 	printf("scoreboard contents (sid=%d): \n", m_sid);
-	for(unsigned i=0; i<reg_table.size(); i++) {
-		if(reg_table[i].size() == 0 ) continue;
+	for (unsigned i = 0; i < reg_table.size(); i++) {
+		if (reg_table[i].size() == 0)
+			continue;
 		printf("  wid = %2d: ", i);
 		std::set<unsigned>::const_iterator it;
-		for( it=reg_table[i].begin() ; it != reg_table[i].end(); it++ )
+		for (it = reg_table[i].begin(); it != reg_table[i].end(); it++)
 			printf("%u ", *it);
 		printf("\n");
 	}
 }
 
-void Scoreboard::reserveRegister(unsigned wid, unsigned regnum) 
-{
-	if( !(reg_table[wid].find(regnum) == reg_table[wid].end()) ){
-		printf("Error: trying to reserve an already reserved register (sid=%d, wid=%d, regnum=%d).", m_sid, wid, regnum);
-        abort();
+void Scoreboard::reserveRegister(unsigned wid, unsigned regnum) {
+	if (!(reg_table[wid].find(regnum) == reg_table[wid].end())) {
+		printf(
+				"Error: trying to reserve an already reserved register (sid=%d, wid=%d, regnum=%d).",
+				m_sid, wid, regnum);
+		abort();
 	}
-    SHADER_DPRINTF( SCOREBOARD,
-                    "Reserved Register - warp:%d, reg: %d\n", wid, regnum );
+	SHADER_DPRINTF( SCOREBOARD,
+			"Reserved Register - warp:%d, reg: %d\n", wid, regnum);
 	reg_table[wid].insert(regnum);
 }
 
 // Unmark register as write-pending
-void Scoreboard::releaseRegister(unsigned wid, unsigned regnum) 
-{
-	if( !(reg_table[wid].find(regnum) != reg_table[wid].end()) ) 
-        return;
-    SHADER_DPRINTF( SCOREBOARD,
-                    "Release register - warp:%d, reg: %d\n", wid, regnum );
+void Scoreboard::releaseRegister(unsigned wid, unsigned regnum) {
+	if (!(reg_table[wid].find(regnum) != reg_table[wid].end()))
+		return;
+	SHADER_DPRINTF( SCOREBOARD,
+			"Release register - warp:%d, reg: %d\n", wid, regnum);
 	reg_table[wid].erase(regnum);
 }
 
-const bool Scoreboard::islongop (unsigned warp_id,unsigned regnum) {
+const bool Scoreboard::islongop(unsigned warp_id, unsigned regnum) {
 	return longopregs[warp_id].find(regnum) != longopregs[warp_id].end();
 }
 
-void Scoreboard::reserveRegisters(const class warp_inst_t* inst) 
-{
-    for( unsigned r=0; r < 4; r++) {
-        if(inst->out[r] > 0) {
-            reserveRegister(inst->warp_id(), inst->out[r]);
-            SHADER_DPRINTF( SCOREBOARD,
-                            "Reserved register - warp:%d, reg: %d\n",
-                            inst->warp_id(),
-                            inst->out[r] );
-        }
-    }
+void Scoreboard::reserveRegisters(const class warp_inst_t* inst) {
+	for (unsigned r = 0; r < 4; r++) {
+		if (inst->out[r] > 0) {
+			reserveRegister(inst->warp_id(), inst->out[r]);
+			SHADER_DPRINTF( SCOREBOARD,
+					"Reserved register - warp:%d, reg: %d\n", inst->warp_id(), inst->out[r]);
+		}
+	}
 
-    //Keep track of long operations
-    if (inst->is_load() &&
-    		(	inst->space.get_type() == global_space ||
-    			inst->space.get_type() == local_space ||
-                inst->space.get_type() == param_space_kernel ||
-                inst->space.get_type() == param_space_local ||
-                inst->space.get_type() == param_space_unclassified ||
-    			inst->space.get_type() == tex_space)){
-    	for ( unsigned r=0; r<4; r++) {
-    		if(inst->out[r] > 0) {
-                SHADER_DPRINTF( SCOREBOARD,
-                                "New longopreg marked - warp:%d, reg: %d\n",
-                                inst->warp_id(),
-                                inst->out[r] );
-                longopregs[inst->warp_id()].insert(inst->out[r]);
-            }
-    	}
-    }
-}
-
-// Release registers for an instruction
-void Scoreboard::releaseRegisters(const class warp_inst_t *inst) 
-{
-    for( unsigned r=0; r < 4; r++) {
-        if(inst->out[r] > 0) {
-            SHADER_DPRINTF( SCOREBOARD,
-                            "Register Released - warp:%d, reg: %d\n",
-                            inst->warp_id(),
-                            inst->out[r] );
-            releaseRegister(inst->warp_id(), inst->out[r]);
-            longopregs[inst->warp_id()].erase(inst->out[r]);
-        }
-    }
+	//Keep track of long operations
+	if (inst->is_load()
+			&& (inst->space.get_type() == global_space
+					|| inst->space.get_type() == local_space
+					|| inst->space.get_type() == param_space_kernel
+					|| inst->space.get_type() == param_space_local
+					|| inst->space.get_type() == param_space_unclassified
+					|| inst->space.get_type() == tex_space)) {
+		for (unsigned r = 0; r < 4; r++) {
+			if (inst->out[r] > 0) {
+				SHADER_DPRINTF( SCOREBOARD,
+						"New longopreg marked - warp:%d, reg: %d\n", inst->warp_id(), inst->out[r]);
+				longopregs[inst->warp_id()].insert(inst->out[r]);
+			}
+		}
+	}
 }
 
 /** 
@@ -132,34 +209,43 @@ void Scoreboard::releaseRegisters(const class warp_inst_t *inst)
  *  
  * @return 
  * true if WAW or RAW hazard (no WAR since in-order issue)
- **/ 
-bool Scoreboard::checkCollision( unsigned wid, const class inst_t *inst ) const
-{
+ **/
+bool Scoreboard::checkCollision(unsigned wid, const class inst_t *inst) const {
 	// Get list of all input and output registers
 	std::set<int> inst_regs;
 
-	if(inst->out[0] > 0) inst_regs.insert(inst->out[0]);
-	if(inst->out[1] > 0) inst_regs.insert(inst->out[1]);
-	if(inst->out[2] > 0) inst_regs.insert(inst->out[2]);
-	if(inst->out[3] > 0) inst_regs.insert(inst->out[3]);
-	if(inst->in[0] > 0) inst_regs.insert(inst->in[0]);
-	if(inst->in[1] > 0) inst_regs.insert(inst->in[1]);
-	if(inst->in[2] > 0) inst_regs.insert(inst->in[2]);
-	if(inst->in[3] > 0) inst_regs.insert(inst->in[3]);
-	if(inst->pred > 0) inst_regs.insert(inst->pred);
-	if(inst->ar1 > 0) inst_regs.insert(inst->ar1);
-	if(inst->ar2 > 0) inst_regs.insert(inst->ar2);
+	if (inst->out[0] > 0)
+		inst_regs.insert(inst->out[0]);
+	if (inst->out[1] > 0)
+		inst_regs.insert(inst->out[1]);
+	if (inst->out[2] > 0)
+		inst_regs.insert(inst->out[2]);
+	if (inst->out[3] > 0)
+		inst_regs.insert(inst->out[3]);
+	if (inst->in[0] > 0)
+		inst_regs.insert(inst->in[0]);
+	if (inst->in[1] > 0)
+		inst_regs.insert(inst->in[1]);
+	if (inst->in[2] > 0)
+		inst_regs.insert(inst->in[2]);
+	if (inst->in[3] > 0)
+		inst_regs.insert(inst->in[3]);
+	if (inst->pred > 0)
+		inst_regs.insert(inst->pred);
+	if (inst->ar1 > 0)
+		inst_regs.insert(inst->ar1);
+	if (inst->ar2 > 0)
+		inst_regs.insert(inst->ar2);
 
-	// Check for collision, get the intersection of reserved registers and instruction registers
+// Check for collision, get the intersection of reserved registers and instruction registers
 	std::set<int>::const_iterator it2;
-	for ( it2=inst_regs.begin() ; it2 != inst_regs.end(); it2++ )
-		if(reg_table[wid].find(*it2) != reg_table[wid].end()) {
+	for (it2 = inst_regs.begin(); it2 != inst_regs.end(); it2++)
+		if (reg_table[wid].find(*it2) != reg_table[wid].end()) {
 			return true;
 		}
 	return false;
 }
 
-bool Scoreboard::pendingWrites(unsigned wid) const
-{
+bool Scoreboard::pendingWrites(unsigned wid) const {
 	return !reg_table[wid].empty();
 }

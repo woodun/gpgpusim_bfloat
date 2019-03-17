@@ -37,24 +37,43 @@
 
 class frfcfs_scheduler {
 public:
-   frfcfs_scheduler( const memory_config *config, dram_t *dm, memory_stats_t *stats );
-   void add_req( dram_req_t *req );
-   void data_collection(unsigned bank);
-   dram_req_t *schedule( unsigned bank, unsigned curr_row );
-   void print( FILE *fp );
-   unsigned num_pending() const { return m_num_pending;}
+	frfcfs_scheduler(const memory_config *config, dram_t *dm,
+			memory_stats_t *stats);
+	void add_req(dram_req_t *req);
+	void data_collection(unsigned bank);
+	dram_req_t *schedule(unsigned bank, unsigned curr_row);
+	void print(FILE *fp);
+	unsigned num_pending() const {
+		return m_num_pending;
+	}
+
+	//////////////myedit AMC
+	void increment_and_remove(unsigned n_cmd_partial);
+
+	unsigned num_delay_pending() const {
+		return delay_num_pending;
+	}
+	//////////////myedit AMC
 
 private:
-   const memory_config *m_config;
-   dram_t *m_dram;
-   unsigned m_num_pending;
-   std::list<dram_req_t*>                                    *m_queue;
-   std::map<unsigned,std::list<std::list<dram_req_t*>::iterator> >    *m_bins;
-   std::list<std::list<dram_req_t*>::iterator>                 **m_last_row;
-   unsigned *curr_row_service_time; //one set of variables for each bank.
-   unsigned *row_service_timestamp; //tracks when scheduler began servicing current row
+	const memory_config *m_config;
+	dram_t *m_dram;
+	unsigned m_num_pending;
+	std::list<dram_req_t*> *m_queue;
+	std::map<unsigned, std::list<std::list<dram_req_t*>::iterator> > *m_bins;
+	std::list<std::list<dram_req_t*>::iterator> **m_last_row;
+	unsigned *curr_row_service_time; //one set of variables for each bank.
+	unsigned *row_service_timestamp; //tracks when scheduler began servicing current row
 
-   memory_stats_t *m_stats;
+	//////////////myedit AMC
+	std::list<dram_req_t*> *delay_queue;
+	std::map<unsigned, std::list<std::list<dram_req_t*>::iterator> > *delay_bins;
+	unsigned delay_num_pending;//////////right now it is not used, the normal queue and delay queue share the total size.
+
+	unsigned priority;
+	//////////////myedit AMC
+
+	memory_stats_t *m_stats;
 };
 
 #endif
