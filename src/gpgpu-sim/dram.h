@@ -212,8 +212,8 @@ private:
 	/////////////myedit bfloat
 	unsigned int approximated_req_count_partial; //per DRAM
 	unsigned int total_access_count_partial; //per DRAM
-	unsigned int approximated_req_count_temp_partial = 0; //per DRAM
-	unsigned int total_access_count_temp_partial = 0; //per DRAM
+	unsigned int approximated_req_count_temp_partial; //per DRAM
+	unsigned int total_access_count_temp_partial; //per DRAM
 
 	double threshold_bw_dynamic_partial;
 	double threshold_length_dynamic_partial;

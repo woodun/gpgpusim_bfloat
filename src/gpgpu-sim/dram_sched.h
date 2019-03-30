@@ -36,8 +36,8 @@
 #include <map>
 
 ///////////////myedit bfloat
-extern unsigned dram_initialized = 0;
-extern float target_coverage = 0;
+extern unsigned dram_initialized;
+extern float target_coverage;
 extern unsigned print_profile;
 extern unsigned redo_in_l1;
 extern unsigned always_fill;
