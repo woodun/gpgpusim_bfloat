@@ -89,7 +89,7 @@ template<unsigned BSIZE> void memory_space_impl<BSIZE>::write(mem_addr_t addr,
 	}
 }
 
-//////////////////myedit predictor
+//////////////////myeditpredictor
 template<unsigned BSIZE> void memory_space_impl<BSIZE>::write_1(mem_addr_t addr,
 		size_t length, const void *data) {
 	mem_addr_t index = addr >> m_log2_block_size;
@@ -128,7 +128,7 @@ template<unsigned BSIZE> void memory_space_impl<BSIZE>::write_1(mem_addr_t addr,
 template<unsigned BSIZE> void memory_space_impl<BSIZE>::clear() {
 	m_data.clear();
 }
-//////////////////myedit predictor
+//////////////////myeditpredictor
 
 template<unsigned BSIZE> void memory_space_impl<BSIZE>::read_single_block(
 		mem_addr_t blk_idx, mem_addr_t addr, size_t length, void *data) const {

@@ -153,29 +153,19 @@ public:
 		assert(config);
 		char rp, wp, ap, mshr_type, wap, sif;
 
-////////////////////my editCAA
-		int ntok =
-				sscanf(config,
-						"%u:%u:%u,%c:%c:%c:%c:%c,%c:%u:%u,%u:%u,%u,%u:%u:%u:%u:%u:%u,%u:%u:%u:%u:%u:%u,%u:%u:%u:%u:%u,%u:%u,%s",
-						&m_nset, &m_line_sz, &m_assoc, &rp, &wp, &ap, &wap,
-						&sif, &mshr_type, &m_mshr_entries, &m_mshr_max_merge,
-						&m_miss_queue_size, &m_result_fifo_entries,
-						&m_data_port_width,
-						&access_analysis_enabled, //#15
-						&pc_bits, &warp_bits, &hash_mode,
-						&tag_mode, //#19
-						&exp_mode, &cache_mode, &profile_mode, &is_profile_on,
-						&is_predict_on,
-						&entry_update_mode, //#25
-						&is_hash_on, &evict_mode, &replace_real_data,
-						&predictable_percent, &predict_in_round,
-						&fetch_in_round, &one_stride, &update_all, folder_name);
+////////////////////myeditCAA
+		int ntok = sscanf(config, "%u:%u:%u,%c:%c:%c:%c:%c,%c:%u:%u,%u:%u,%u,%u:%u",
+				&m_nset, &m_line_sz, &m_assoc, &rp, &wp, &ap, &wap, &sif,
+				&mshr_type, &m_mshr_entries, &m_mshr_max_merge,
+				&m_miss_queue_size, &m_result_fifo_entries, &m_data_port_width,
+				&access_analysis_enabled, //#15
+				&cache_mode);
 
 		//int ntok = sscanf(config, "%u:%u:%u,%c:%c:%c:%c:%c,%c:%u:%u,%u:%u,%u",
 		//		&m_nset, &m_line_sz, &m_assoc, &rp, &wp, &ap, &wap, &sif,
 		//		&mshr_type, &m_mshr_entries, &m_mshr_max_merge,
 		//		&m_miss_queue_size, &m_result_fifo_entries, &m_data_port_width);
-//////////////////////////my editCAA
+//////////////////////////myeditCAA
 
 		if (ntok < 11) {
 			if (!strcmp(config, "none")) {
@@ -332,36 +322,10 @@ public:
 	char *m_config_stringPrefShared;
 	FuncCache cache_status;
 
-	//////////////////////////my editCAA
+	//////////////////////////myeditCAA
 	unsigned access_analysis_enabled;
-	//unsigned print_raw; //print per access?
-	//unsigned compare_window; //do window comparison?
-	//unsigned miss_only; //only record missed access? 1=miss only, 0=all status.
-	//unsigned cdf; //1 = cdf, 0 = pdf.
-	//unsigned print_matlab; //print overall for matlab? 1 = yes, 0 = no.
-	//unsigned print_page; //Print page statistics?
-	//unsigned  page_size; //DRAM page_size
-	unsigned pc_bits;
-	unsigned warp_bits;
-	unsigned tag_mode;
-	unsigned hash_mode;
-	unsigned exp_mode; ////////// 1 = exp, not affecting performance;
-	//unsigned window_sizes[6]; // put them in ascending order for the function to work.
-	unsigned cache_mode; ///////all hit > 0, normal = 0;
-	unsigned profile_mode; /////profile miss only = 0 or hit only > 0?
-	unsigned is_profile_on; //////if not = 0, cache_mode should be normal, profile_mode should be miss only(0 , 0, 0);
-	unsigned is_predict_on; ////// > 0 means the predictor will be used.
-	unsigned entry_update_mode; /////////1 = update with all miss values(when profiling use this), 0 = update with only unpredictable miss values;
-	unsigned is_hash_on; ////////////hash on will use prediction table, off will use prediction stack, where each PC got an entry.
-	char folder_name[100]; //In which folder to put the results.
-	unsigned predictable_percent; //////////the threshold of average line bias to decide which line is predictable. (0 means turn off this limit)
-	unsigned predict_in_round; ////////after fetch how many can be predicted.
-	unsigned fetch_in_round; ////////after prediction how many should be fetched.
-	unsigned evict_mode; ////////1 = value will be put in the cache, 0 = value will not be put in the cache;
-	unsigned replace_real_data; /////1 = replace real load value with approximate value in the involved threads' registers.
-	unsigned one_stride; //////////1 = use one stride predictor.
-	unsigned update_all; //////////1 = update on all requests(except for reservation fails)
-	//////////////////////////my editCAA
+	unsigned cache_mode;
+	//////////////////////////myeditCAA
 
 protected:
 	void exit_parse_error() {
@@ -443,7 +407,7 @@ public:
 			unsigned &idx, bool &wb, cache_block_t &evicted);
 
 	//////////////myedit AMC
-	void search_nearby_and_replace(mem_fetch *mf);
+	void truncate_float(mem_fetch *mf);
 
 	void fill(new_addr_type addr, unsigned time, unsigned predicted);
 	void fill(unsigned idx, unsigned time, unsigned predicted);
@@ -467,12 +431,12 @@ public:
 
 	void update_cache_parameters(cache_config &config);
 
-	//////////////my editpredictor
+	//////////////myeditpredictor
 	void allocate_and_fill_prediction(unsigned index, unsigned time,
 			new_addr_type addr);
 
 	unsigned is_predicted(unsigned index);
-	//////////////my editpredictor
+	//////////////myeditpredictor
 
 	///////myedit AMC
 	unsigned fill_count;
@@ -531,29 +495,11 @@ public:
 	//////////////myedit AMC
 	void mark_ready(new_addr_type block_addr, bool &has_atomic,
 			unsigned is_approximated, int is_l2);
-
-	void replenish_approx_delay();
 	//////////////myedit AMC
 
 	/// Returns true if ready accesses exist
 	bool access_ready() const {
-
-		///////////////////////myedit AMC
-		//////return !m_current_response.empty();
-		if (m_current_response.empty()) {
-			return false;
-		} else {
-			if (!m_current_response.front().is_approx) {
-				return true;
-			} else {
-				if (m_current_response.front().delay <= 0) {
-					return true;
-				} else {
-					return false;
-				}
-			}
-		}
-		///////////////////////myedit AMC
+		return !m_current_response.empty();
 	}
 	/// Returns next ready access
 	mem_fetch *next_access();
@@ -593,36 +539,10 @@ private:
 	typedef tr1_hash_map<new_addr_type,mshr_entry> table;
 	table m_data;
 
-	////////////myedit AMC
-	struct response_entry {
-
-		new_addr_type response_addr;
-		int delay;
-		int is_approx;
-
-		response_entry() {
-
-			response_addr = 0;
-			delay = 0;
-			is_approx = 0;
-		}
-
-		response_entry(new_addr_type response_addr1, int delay1, int is_approx1) {
-
-			response_addr = response_addr1;
-			delay = delay1;
-			is_approx = is_approx1;
-		}
-	};
-	////////////myedit AMC
-
 	// it may take several cycles to process the merged requests
 	bool m_current_response_ready;
 
-	///////////////////myedit AMC
-	////////std::list<new_addr_type> m_current_response;
-	std::list<response_entry> m_current_response;
-	///////////////////myedit AMC
+	std::list<new_addr_type> m_current_response;
 };
 
 /***************************************************************** Caches *****************************************************************/
@@ -1101,7 +1021,7 @@ protected:
 /// (the policy used in fermi according to the CUDA manual)
 class l1_cache: public data_cache {
 public:
-	//////////////my editpredictor
+	//////////////myeditpredictor
 	/*
 	 l1_cache(shader_core_ctx *core, const char *name, cache_config &config, int core_id, int type_id,
 	 mem_fetch_interface *memport, mem_fetch_allocator *mfcreator,
@@ -1117,7 +1037,7 @@ public:
 			m_core(core), data_cache(name, config, core_id, type_id, memport,
 					mfcreator, status, L1_WR_ALLOC_R, L1_WRBK_ACC) {
 	}
-	//////////////my editpredictor
+	//////////////myeditpredictor
 
 	virtual ~l1_cache() {
 	}
@@ -1134,10 +1054,10 @@ protected:
 					status, new_tag_array, L1_WR_ALLOC_R, L1_WRBK_ACC) {
 	}
 
-	//////////////my editpredictor
+	//////////////myeditpredictor
 public:
 	class shader_core_ctx *m_core;
-	//////////////my editpredictor
+	//////////////myeditpredictor
 };
 
 /// Models second level shared cache with global write-back

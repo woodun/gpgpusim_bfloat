@@ -384,18 +384,6 @@ void memory_sub_partition::cache_cycle(unsigned cycle) {
 						gpu_sim_cycle + gpu_tot_sim_cycle);
 				m_L2cache->fill(mf, gpu_sim_cycle + gpu_tot_sim_cycle);
 				m_dram_L2_queue->pop();
-
-				////////////myedit AMC
-				if (m_L2cache->get_fill_count() >= l2_warmup_count) {
-
-					if (m_id % 2 == 0) {
-						m_partition->set_sub_partition1();
-					} else {
-						assert(m_id % 2 == 1);
-						m_partition->set_sub_partition2();
-					}
-				}
-				////////////myedit AMC
 			}
 		} else if (!m_L2_icnt_queue->full()) {
 			mf->set_status(IN_PARTITION_L2_TO_ICNT_QUEUE,

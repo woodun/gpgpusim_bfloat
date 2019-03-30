@@ -110,28 +110,19 @@ dram_t::dram_t(unsigned int partition_id, const struct memory_config *config,
 	ave_mrqs_partial = 0;
 	bwutil_partial = 0;
 
-	////////////myedit amc
+	////////////myeditamc
 	bwutil_partial_gread = 0; //per DRAM
 	bwutil_partial_gwrite = 0; //per DRAM
 
 	temp_bwutil_partial = 0; //per DRAM
 	temp_bwutil_partial_gread = 0; //per DRAM
 	temp_bwutil_partial_gwrite = 0; //per DRAM
+	////////////myeditamc
 
-	act_bwutil_partial = 0; //per DRAM
-	act_bwutil_partial_gread = 0; //per DRAM
-	act_bwutil_partial_gwrite = 0; //per DRAM
-
-	req_bwutil_partial = 0; //per DRAM
-	req_bwutil_partial_gread = 0; //per DRAM
-	req_bwutil_partial_gwrite = 0; //per DRAM
-
-	act_cmd_partial = 0; ///////cycles in window
-	req_cmd_partial = 0; ///////cycles in window
-
-	subchannel1_warmed_up = 0;
-	subchannel2_warmed_up = 0;
-	////////////myedit amc
+	/////////////myedit bfloat
+	approximated_req_count_partial = 0;
+	threshold_bw_dynamic_partial = 0;
+	/////////////myedit bfloat
 
 	if (queue_limit())
 		mrqq_Dist = StatCreate("mrqq_length", 1, queue_limit());
@@ -184,14 +175,6 @@ dram_req_t::dram_req_t(class mem_fetch *mf) {
 	addr = mf->get_addr();
 	insertion_time = (unsigned) gpu_sim_cycle;
 	rw = data->get_is_write() ? WRITE : READ;
-
-	//////////////myedit AMC
-	delay_time = 0;
-	is_echo = 0;
-	subpar1_exists = 0;
-	subpar2_exists = 0;
-	subpartition_id = tlx.sub_partition;
-	//////////////myedit AMC
 }
 
 void dram_t::push(class mem_fetch *data) {
@@ -322,7 +305,7 @@ void dram_t::cycle() {
 				issued = true; ///////////////should just continue if it is issued. anyway nothing can be done here after issued.
 				n_rd++;
 
-				////////my editHW2
+				////////myeditHW2
 				if (bk[j]->mrq->data->get_access_type() == GLOBAL_ACC_R) {
 					////////accu
 					bwutil_global_read += m_config->BL
@@ -335,18 +318,8 @@ void dram_t::cycle() {
 							/ m_config->data_command_freq_ratio; /////////overall
 					temp_bwutil_partial_gread += m_config->BL
 							/ m_config->data_command_freq_ratio; /////////partial
-
-					act_bwutil_gread += m_config->BL
-							/ m_config->data_command_freq_ratio; /////////overall
-					act_bwutil_partial_gread += m_config->BL
-							/ m_config->data_command_freq_ratio; /////////partial
-
-					req_bwutil_gread += m_config->BL
-							/ m_config->data_command_freq_ratio; /////////overall
-					req_bwutil_partial_gread += m_config->BL
-							/ m_config->data_command_freq_ratio; /////////partial
 				}
-				///////my editHW2
+				///////myeditHW2
 
 				//////////////accu
 				bwutil += m_config->BL / m_config->data_command_freq_ratio; /////////overall
@@ -354,20 +327,12 @@ void dram_t::cycle() {
 						/ m_config->data_command_freq_ratio; /////////partial
 				bk[j]->n_access++;
 
-				////////////myedit amc
+				////////////myeditamc
 				//////////temps
 				temp_bwutil += m_config->BL / m_config->data_command_freq_ratio;/////////overall
 				temp_bwutil_partial += m_config->BL
 						/ m_config->data_command_freq_ratio;	/////////partial
-
-				act_bwutil += m_config->BL / m_config->data_command_freq_ratio;	/////////overall
-				act_bwutil_partial += m_config->BL
-						/ m_config->data_command_freq_ratio;	/////////partial
-
-				req_bwutil += m_config->BL / m_config->data_command_freq_ratio;	/////////overall
-				req_bwutil_partial += m_config->BL
-						/ m_config->data_command_freq_ratio;	/////////partial
-				////////////myedit amc
+				////////////myeditamc
 
 #ifdef DRAM_VERIFY
 				PRINT_CYCLE=1;
@@ -400,7 +365,7 @@ void dram_t::cycle() {
 				issued = true;
 				n_wr++;
 
-				////////my editHW2
+				////////myeditHW2
 				if (bk[j]->mrq->data->get_access_type() == GLOBAL_ACC_W) {
 					/////////////accu
 					bwutil_global_write += m_config->BL
@@ -413,38 +378,20 @@ void dram_t::cycle() {
 							/ m_config->data_command_freq_ratio; /////////overall
 					temp_bwutil_partial_gwrite += m_config->BL
 							/ m_config->data_command_freq_ratio; /////////partial
-
-					act_bwutil_gwrite += m_config->BL
-							/ m_config->data_command_freq_ratio; /////////overall
-					act_bwutil_partial_gwrite += m_config->BL
-							/ m_config->data_command_freq_ratio; /////////partial
-
-					req_bwutil_gwrite += m_config->BL
-							/ m_config->data_command_freq_ratio; /////////overall
-					req_bwutil_partial_gwrite += m_config->BL
-							/ m_config->data_command_freq_ratio; /////////partial
 				}
-				///////my editHW2
+				///////myeditHW2
 
 				//////////accu
 				bwutil += m_config->BL / m_config->data_command_freq_ratio; /////////overall
 				bwutil_partial += m_config->BL
 						/ m_config->data_command_freq_ratio; /////////partial
 
-				////////////myedit amc
+				////////////myeditamc
 				///////////temps
 				temp_bwutil += m_config->BL / m_config->data_command_freq_ratio;/////////overall
 				temp_bwutil_partial += m_config->BL
 						/ m_config->data_command_freq_ratio;	/////////partial
-
-				act_bwutil += m_config->BL / m_config->data_command_freq_ratio;	/////////overall
-				act_bwutil_partial += m_config->BL
-						/ m_config->data_command_freq_ratio;	/////////partial
-
-				req_bwutil += m_config->BL / m_config->data_command_freq_ratio;	/////////overall
-				req_bwutil_partial += m_config->BL
-						/ m_config->data_command_freq_ratio;	/////////partial
-				////////////myedit amc
+				////////////myeditamc
 
 #ifdef DRAM_VERIFY
 				PRINT_CYCLE=1;

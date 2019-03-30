@@ -155,12 +155,6 @@ public:
 		}
 	}
 
-	//////////////myedit AMC
-	bool available(unsigned more) const {
-		return (m_max_len && (m_length + more <= m_max_len));
-	}
-	//////////////myedit AMC
-
 	bool full() const {
 		return (m_max_len && m_length >= m_max_len);
 	}

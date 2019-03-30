@@ -35,6 +35,15 @@
 #include <list>
 #include <map>
 
+///////////////myedit bfloat
+extern unsigned dram_initialized = 0;
+extern float target_coverage = 0;
+extern unsigned print_profile;
+extern unsigned redo_in_l1;
+extern unsigned always_fill;
+extern unsigned bypassl2d;
+///////////////myedit bfloat
+
 class frfcfs_scheduler {
 public:
 	frfcfs_scheduler(const memory_config *config, dram_t *dm,
@@ -47,14 +56,6 @@ public:
 		return m_num_pending;
 	}
 
-	//////////////myedit AMC
-	void increment_and_remove(unsigned n_cmd_partial);
-
-	unsigned num_delay_pending() const {
-		return delay_num_pending;
-	}
-	//////////////myedit AMC
-
 private:
 	const memory_config *m_config;
 	dram_t *m_dram;
@@ -64,14 +65,6 @@ private:
 	std::list<std::list<dram_req_t*>::iterator> **m_last_row;
 	unsigned *curr_row_service_time; //one set of variables for each bank.
 	unsigned *row_service_timestamp; //tracks when scheduler began servicing current row
-
-	//////////////myedit AMC
-	std::list<dram_req_t*> *delay_queue;
-	std::map<unsigned, std::list<std::list<dram_req_t*>::iterator> > *delay_bins;
-	unsigned delay_num_pending;//////////right now it is not used, the normal queue and delay queue share the total size.
-
-	unsigned priority;
-	//////////////myedit AMC
 
 	memory_stats_t *m_stats;
 };

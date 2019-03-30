@@ -56,16 +56,6 @@ ptx_reg_t srcOperandModifiers(ptx_reg_t opData, operand_info opInfo, operand_inf
 
 void sign_extend( ptx_reg_t &data, unsigned src_size, const operand_info &dst );
 
-////////////////////////////my editRF
-//void print_RF(int thread_id, bool single_thread, const symbol *reg,
-//		const ptx_thread_info *thread, const ptx_reg_t &value,
-//		unsigned long long time_stamp);
-////////////////////////////my editRF
-
-/////////////////////my editdebug
-//extern std::FILE * debug1;
-/////////////////////my editdebug
-
 void ptx_thread_info::set_reg( const symbol *reg, const ptx_reg_t &value )
 {
    assert( reg != NULL );
@@ -76,29 +66,6 @@ void ptx_thread_info::set_reg( const symbol *reg, const ptx_reg_t &value )
    if (m_enable_debug_trace )
       m_debug_trace_regs_modified.back()[ reg ] = value;
    m_last_set_operand_value = value;
-
-   /////////////////////my editdebug
-	/*   if(0 && reg->arch_reg_num() == 5 && value.u32 == 2147483648 && get_hw_sid() == 0 && get_hw_wid() ==0){
-		   const ptx_instruction *pI = m_func_info->get_instruction(get_pc());
-		   std::fprintf(debug1,"src1, reg:r5, set_PC:%u, thread_id:%d, core_id:%d, warp_id:%d, op:%s, value:%llu\n",
-				   get_pc(), get_hw_tid(), get_hw_sid(), get_hw_wid(), pI->get_opcode_cstr(), value.u64);
-	   }
-	   if(0 && reg->arch_reg_num() == 7 && value.u32 == 1792 && get_hw_sid() == 0 && get_hw_wid() ==0){
-		   const ptx_instruction *pI = m_func_info->get_instruction(get_pc());
-		   std::fprintf(debug1,"src2, reg:r7, set_PC:%u, thread_id:%d, core_id:%d, warp_id:%d, op:%s, value:%llu\n",
-				   get_pc(), get_hw_tid(), get_hw_sid(), get_hw_wid(), pI->get_opcode_cstr(), value.u64);
-	   }
-	   if(reg->get_size_in_bytes()>4 && get_hw_sid() == 0 && get_hw_wid() ==0 && get_hw_tid() == 0){
-		   const ptx_instruction *pI = m_func_info->get_instruction(get_pc());
-		   std::fprintf(debug1,"reg:%d, size:%u, PC:%u, thread_id:%d, core_id:%d, warp_id:%d, op:%s, value:%llu\n",
-				   reg->arch_reg_num(), reg->get_size_in_bytes(), get_pc(),
-				   get_hw_tid(), get_hw_sid(), get_hw_wid(), pI->get_opcode_cstr(), value.u64);
-	   }*/
-   /////////////////////my editdebug
-
-   ////////////////////////////my editRF
-   //print_RF(1, true, reg, this, value, gpu_tot_sim_cycle + gpu_sim_cycle);
-   ////////////////////////////my editRF
 }
 
 ptx_reg_t ptx_thread_info::get_reg( const symbol *reg )
@@ -150,67 +117,31 @@ ptx_reg_t ptx_thread_info::get_operand_value( const operand_info &op, operand_in
             if ( info.is_reg() ) {
                const symbol *name = op.get_symbol();
                result.u64 = get_reg(name).u64 + op.get_addr_offset();
-               /////////////////////my editdebug
-               //if(thread->get_hw_sid() == 0 && thread->get_hw_wid() ==0){
-              // std::fprintf(debug1,"Reg:%s,reg_num:%d,arch_reg_num:%d,PC:%u\n", name->name().c_str(),
-            	//	   name->reg_num(), name->arch_reg_num(),get_pc());
-               //}
-               /////////////////////my editdebug
+
             } else if ( info.is_param_kernel() ) {
                result.u64 = sym->get_address() + op.get_addr_offset();
-               /////////////////////my editdebug
-               //if(thread->get_hw_sid() == 0 && thread->get_hw_wid() ==0){
-               //std::fprintf(debug1,"param_kernel\n");
-               //}
-               /////////////////////my editdebug
+
             } else if ( info.is_param_local() ) {
                result.u64 = sym->get_address() + op.get_addr_offset();
-               /////////////////////my editdebug
-               //if(thread->get_hw_sid() == 0 && thread->get_hw_wid() ==0){
-               //std::fprintf(debug1,"param_local\n");
-               //}
-               /////////////////////my editdebug
+
             } else if ( info.is_global() ) {
                assert( op.get_addr_offset() == 0 );
                result.u64 = sym->get_address();
-               /////////////////////my editdebug
-               //if(thread->get_hw_sid() == 0 && thread->get_hw_wid() ==0){
-               //std::fprintf(debug1,"Global\n");
-               //}
-               /////////////////////my editdebug
+
             } else if ( info.is_local() ) {
                result.u64 = sym->get_address() + op.get_addr_offset();
-               /////////////////////my editdebug
-               //if(thread->get_hw_sid() == 0 && thread->get_hw_wid() ==0){
-               //std::fprintf(debug1,"local\n");
-               //}
-               /////////////////////my editdebug
+
             } else if ( info.is_const() ) {
                result.u64 = sym->get_address() + op.get_addr_offset();
-               /////////////////////my editdebug
-               //if(thread->get_hw_sid() == 0 && thread->get_hw_wid() ==0){
-               //std::fprintf(debug1,"Const\n");
-               //}
-               /////////////////////my editdebug
+
             } else if ( op.is_shared() ) {
                result.u64 = op.get_symbol()->get_address() + op.get_addr_offset();
-               /////////////////////my editdebug
-               //if(thread->get_hw_sid() == 0 && thread->get_hw_wid() ==0){
-               //std::fprintf(debug1,"Shared\n");
-               //}
-               /////////////////////my editdebug
+
             } else {
                const char *name = op.name().c_str();
                printf("GPGPU-Sim PTX: ERROR ** get_operand_value : unknown memory operand type for %s\n", name );
                abort();
             }
-
-            /////////////////////my editdebug
-            //if(thread->get_hw_sid() == 0 && thread->get_hw_wid() ==0){
-            //std::fprintf(debug1,"In mem_op, result:%u, offset:%u\n",
-            //		result.u64, op.get_addr_offset());
-            //}
-            /////////////////////my editdebug
 
          } else if ( op.is_literal() ) {
             result = op.get_literal_value();
@@ -292,13 +223,6 @@ ptx_reg_t ptx_thread_info::get_operand_value( const operand_info &op, operand_in
        thread->m_last_effective_address = result.u32;
        thread->m_last_memory_space = global_space;
 
-       /////////////////////my editdebug
-       //if(thread->get_hw_sid() == 0 && thread->get_hw_wid() ==0){
-       //std::fprintf(debug1,"space:global symbol, warp_id:0, thread_id:%d   ,address:%u [0x%08x],   value:%llu\n",
-    	//	   thread->get_hw_tid(),thread->m_last_effective_address, (unsigned)thread->m_last_effective_address,finalResult.u128);
-       //}
-       /////////////////////my editdebug
-
        if( opType == S16_TYPE || opType == S32_TYPE )
          sign_extend(finalResult,size,dstInfo);
    } else if((op.get_addr_space() == shared_space)&&(derefFlag)) {
@@ -308,13 +232,6 @@ ptx_reg_t ptx_thread_info::get_operand_value( const operand_info &op, operand_in
        mem->read(result.u32,size/8,&finalResult.u128);
        thread->m_last_effective_address = result.u32;
        thread->m_last_memory_space = shared_space;
-
-       /////////////////////my editdebug
-       //if(thread->get_hw_sid() == 0 && thread->get_hw_wid() ==0){
-       //std::fprintf(debug1,"space:shared symbol, warp_id:0, thread_id:%d   ,address:%u [0x%08x],   value:%llu\n",
-    	//	   thread->get_hw_tid(),thread->m_last_effective_address, (unsigned)thread->m_last_effective_address,finalResult.u128);
-      // }
-       /////////////////////my editdebug
 
        if( opType == S16_TYPE || opType == S32_TYPE )
          sign_extend(finalResult,size,dstInfo);
@@ -326,13 +243,6 @@ ptx_reg_t ptx_thread_info::get_operand_value( const operand_info &op, operand_in
        thread->m_last_effective_address = result.u32;
        thread->m_last_memory_space = const_space;
 
-       /////////////////////my editdebug
-       //if(thread->get_hw_sid() == 0 && thread->get_hw_wid() ==0){
-       //std::fprintf(debug1,"space:const symbol, warp_id:0, thread_id:%d   ,address:%u [0x%08x],   value:%llu\n",
-    	//	   thread->get_hw_tid(),thread->m_last_effective_address, (unsigned)thread->m_last_effective_address,finalResult.u128);
-       //}
-       /////////////////////my editdebug
-
        if( opType == S16_TYPE || opType == S32_TYPE )
          sign_extend(finalResult,size,dstInfo);
    } else if((op.get_addr_space() == local_space)&&(derefFlag)) {
@@ -342,13 +252,6 @@ ptx_reg_t ptx_thread_info::get_operand_value( const operand_info &op, operand_in
        mem->read(result.u32,size/8,&finalResult.u128);
        thread->m_last_effective_address = result.u32;
        thread->m_last_memory_space = local_space;
-
-       /////////////////////my editdebug
-       //if(thread->get_hw_sid() == 0 && thread->get_hw_wid() ==0){
-       //std::fprintf(debug1,"space:local symbol, warp_id:0, thread_id:%d   ,address:%u [0x%08x],   value:%llu\n",
-    	//	   thread->get_hw_tid(),thread->m_last_effective_address, (unsigned)thread->m_last_effective_address,finalResult.u128);
-       //}
-       /////////////////////my editdebug
 
        if( opType == S16_TYPE || opType == S32_TYPE )
          sign_extend(finalResult,size,dstInfo);
@@ -711,38 +614,6 @@ void ptx_thread_info::set_operand_value( const operand_info &dst, const ptx_reg_
        printf("Destination stores to unknown location.");
        assert(0);
    }
-
-   /////////////////////my editdebug
-   /*std::string keyword = "%r1";
-   if(0&&std::strcmp(keyword.c_str(), dst.name().c_str()) == 0 &&
-		   data.u32 == 0 && get_hw_sid() == 0 && (get_hw_wid() ==0 || get_hw_wid() == 1)){
-   		   const ptx_instruction *pI = m_func_info->get_instruction(get_pc());
-   		   std::fprintf(debug1,"normal_set_op:src1, name:%s, set_PC:%u, thread_id:%d,"
-   				   " core_id:%d, warp_id:%d, op:%s, value:%llu, cycle:%llu\n",
-   				   dst.name().c_str(), get_pc(), get_hw_tid(), get_hw_sid(), get_hw_wid(),
-   				   pI->get_opcode_cstr(), data.u64, gpu_sim_cycle + gpu_tot_sim_cycle);
-   }
-
-   std::string keyword2 = "%r3";
-   if(0&&std::strcmp(keyword2.c_str(), dst.name().c_str()) == 0 &&
-		   data.u32 == 1 && get_hw_sid() == 0 && (get_hw_wid() ==0 || get_hw_wid() == 1)){
-   		   const ptx_instruction *pI = m_func_info->get_instruction(get_pc());
-   		   std::fprintf(debug1,"normal_set_op:src1, name:%s, set_PC:%u, thread_id:%d,"
-   				   " core_id:%d, warp_id:%d, op:%s, value:%llu, cycle:%llu\n",
-   				   dst.name().c_str(), get_pc(), get_hw_tid(), get_hw_sid(), get_hw_wid(),
-   				   pI->get_opcode_cstr(), data.u64, gpu_sim_cycle + gpu_tot_sim_cycle);
-   }
-
-   std::string keyword3 = "%r14";
-      if(0&&std::strcmp(keyword3.c_str(), dst.name().c_str()) == 0 &&
-   		   data.u32 == 512 && get_hw_sid() == 0 && (get_hw_wid() ==0 || get_hw_wid() == 1)){
-      		   const ptx_instruction *pI = m_func_info->get_instruction(get_pc());
-      		   std::fprintf(debug1,"normal_set_op:src1, name:%s, set_PC:%u, thread_id:%d,"
-      				   " core_id:%d, warp_id:%d, op:%s, value:%llu, cycle:%llu\n",
-      				   dst.name().c_str(), get_pc(), get_hw_tid(), get_hw_sid(), get_hw_wid(),
-      				   pI->get_opcode_cstr(), data.u64, gpu_sim_cycle + gpu_tot_sim_cycle);
-      }*/
-   /////////////////////my editdebug
 }
 
 void ptx_thread_info::set_vector_operand_values( const operand_info &dst,
@@ -947,19 +818,6 @@ void add_impl( const ptx_instruction *pI, ptx_thread_info *thread )
    fesetround( orig_rm );
 
    thread->set_operand_value(dst, data, i_type, thread, pI, overflow, carry  );
-
-   /////////////////////my editdebug
-   /*if(0&&thread->get_hw_sid() == 0 && (thread->get_hw_wid() == 0 || thread->get_hw_wid() == 1 || thread->get_hw_wid() == 2
-		   || thread->get_hw_wid() == 3 || thread->get_hw_wid() == 4)
-		   && (thread->get_pc() == 9240 || thread->get_pc() == 9312 || thread->get_pc() == 9336 ||
-				   thread->get_pc() == 9304 || thread->get_pc() == 9208)) {
-	   std::fprintf(debug1,"op:add, PC:%u, core_id:%d, thread_id:%d, dst_name:%s dst_value:%llu,"
-			   " src1_name:%s src1_value:%llu, src2_name:%s src2_value:%llu, cycle:%llu\n",
-			   thread->get_pc(), thread->get_hw_sid(), thread->get_hw_tid(), dst.name().c_str(),
-			   data.u64, src1.name().c_str(), src1_data.u64, src2.name().c_str(),
-			   src2_data.u64, gpu_sim_cycle + gpu_tot_sim_cycle);
-   }*/
-   /////////////////////my editdebug
 }
 
 void addc_impl( const ptx_instruction *pI, ptx_thread_info *thread ) { inst_not_implemented(pI); }
@@ -2238,17 +2096,6 @@ void cvt_impl( const ptx_instruction *pI, ptx_thread_info *thread )
    }
 
    thread->set_operand_value(dst, data, to_type, thread, pI );
-
-   /////////////////////my editdebug
-   /*if(0&&thread->get_hw_sid() == 0 && (thread->get_hw_wid() == 0 || thread->get_hw_wid() == 1 || thread->get_hw_wid() == 2
-		   || thread->get_hw_wid() == 3 || thread->get_hw_wid() == 4)
-		   && (thread->get_pc() == 9192 || thread->get_pc() == 9176 || thread->get_pc() == 9144 || thread->get_pc() == 9160)) {
-	   std::fprintf(debug1,"op:cvt, PC:%u, core_id:%d, thread_id:%d, dst_name:%s dst_value:%llu,"
-			   " src1_name:%s src1_value:%llu, cycle:%llu\n",
-			   thread->get_pc(), thread->get_hw_sid(), thread->get_hw_tid(), dst.name().c_str(),
-			   data.u64, src1.name().c_str(), data.u64, gpu_sim_cycle + gpu_tot_sim_cycle);
-   }*/
-   /////////////////////my editdebug
 }
 
 void cvta_impl( const ptx_instruction *pI, ptx_thread_info *thread )
@@ -2401,18 +2248,10 @@ void isspacep_impl( const ptx_instruction *pI, ptx_thread_info *thread )
    thread->set_reg(dst.get_symbol(),p);
 }
 
-/////////////////////my editdebug
-//std::string isgeneric = "generic";
-/////////////////////my editdebug
-
 void decode_space( memory_space_t &space, ptx_thread_info *thread, const operand_info &op, memory_space *&mem, addr_t &addr)
 {
    unsigned smid = thread->get_hw_sid();
    unsigned hwtid = thread->get_hw_tid();
-
-   /////////////////////my editdebug
-   //isgeneric = "non-generic";
-   /////////////////////my editdebug
 
    if( space == param_space_unclassified ) {
       // need to op to determine whether it refers to a kernel param or local param
@@ -2444,10 +2283,6 @@ void decode_space( memory_space_t &space, ptx_thread_info *thread, const operand
       if( thread->get_ptx_version().ver() >= 2.0 ) {
          // convert generic address to memory space address
 
-    	   /////////////////////my editdebug
-    	   //isgeneric = "generic";
-    	   /////////////////////my editdebug
-
          space = whichspace(addr);
          switch ( space.get_type() ) {
          case global_space: mem = thread->get_global_memory(); addr = generic_to_global(addr); break;
@@ -2465,10 +2300,6 @@ void decode_space( memory_space_t &space, ptx_thread_info *thread, const operand
       abort();
    }
 }
-
-/////////////////////my editdebug
-//std::FILE * debug1 = std::fopen("/home/scratch/hwang/debug.txt", "w");
-/////////////////////my editdebug
 
 void ld_exec( const ptx_instruction *pI, ptx_thread_info *thread )
 {
@@ -2512,58 +2343,6 @@ void ld_exec( const ptx_instruction *pI, ptx_thread_info *thread )
    }
    thread->m_last_effective_address = addr;
    thread->m_last_memory_space = space;
-
-   /////////////////////my editdebug
-   /*
-   if(thread->get_hw_sid() == 0 && thread->get_hw_wid() ==0){
-	   std::string memspace;
-	   if(space.get_type() == global_space){
-		   memspace = "global";
-	   }
-	   if(space.get_type() == local_space){
-		   memspace = "local";
-	   }
-	   if(space.get_type() == shared_space){
-		   memspace = "shared";
-	   }
-	   if(space.get_type() == tex_space){
-		   memspace = "texture";
-	   }
-	   if(space.get_type() == surf_space){
-		   memspace = "surf";
-	   }
-	   if(space.get_type() == param_space_kernel){
-		   memspace = "param_space_kernel";
-	   }
-	   if(space.get_type() == param_space_local){
-		   memspace = "param_space_local";
-	   }
-	   if(space.get_type() == const_space){
-		   memspace = "const";
-	   }
-
-	   std::fprintf(debug1,"ld_%s, warp_id:0, thread_id:%d   ,address:%u [0x%08x],   value:%llu, size:%u bits\n",
-	   		   memspace.c_str() ,thread->get_hw_tid(),
-	   thread->m_last_effective_address, (unsigned)thread->m_last_effective_address,data.u64, size);
-*/
-   //std::fprintf(debug1,"space:%s, ld_%s, warp_id:0, thread_id:%d   ,address:%u [0x%08x],   value:%llu, size:%u bits\n",
-	//	   isgeneric.c_str(), memspace.c_str() ,thread->get_hw_tid(),
-	//	   thread->m_last_effective_address, (unsigned)thread->m_last_effective_address,data.u64, size);
-///}
- /////////////////////my editdebug
-
-
-/////////////////////my editdebug
-   /*if(0 && thread->get_hw_sid() == 0 && (thread->get_hw_wid() == 0 || thread->get_hw_wid() == 1 || thread->get_hw_wid() == 2
-		   || thread->get_hw_wid() == 3 || thread->get_hw_wid() == 4)
-		   && (thread->get_pc() == 9296 || thread->get_pc() == 9344 || thread->get_pc() == 9248)) {
-	   std::fprintf(debug1,"op:ld, PC:%u, core_id:%d, thread_id:%d, dst_name:%s dst_value:%llu,"
-			   " src1_name:%s src1_value:%llu, address_after_decode:%llu, cycle:%llu\n",
-			   thread->get_pc(), thread->get_hw_sid(), thread->get_hw_tid(), dst.name().c_str(),
-			   data.u64, src1.name().c_str(), src1_data.u32, addr, gpu_sim_cycle + gpu_tot_sim_cycle);
-   }*/
-   /////////////////////my editdebug
-
 }
 
 void ld_impl( const ptx_instruction *pI, ptx_thread_info *thread )
@@ -2925,17 +2704,6 @@ void mov_impl( const ptx_instruction *pI, ptx_thread_info *thread )
      thread->set_operand_value(dst, data, i_type, thread, pI);
 
    }
-
-   /////////////////////my editdebug
-   /*if(0&&thread->get_hw_sid() == 0 && (thread->get_hw_wid() == 0 || thread->get_hw_wid() == 1 || thread->get_hw_wid() == 2
-		   || thread->get_hw_wid() == 3 || thread->get_hw_wid() == 4)
-		   && thread->get_pc() == 9232) {
-	   std::fprintf(debug1,"op:mov, PC:%u, core_id:%d, thread_id:%d, dst_name:%s dst_value:%llu,"
-			   " src1_name:%s src1_value:%llu, cycle:%llu\n",
-			   thread->get_pc(), thread->get_hw_sid(), thread->get_hw_tid(), dst.name().c_str(),
-			   data.u64, src1.name().c_str(), data.u64, gpu_sim_cycle + gpu_tot_sim_cycle);
-   }*/
-   /////////////////////my editdebug
 }
 
 void mul24_impl( const ptx_instruction *pI, ptx_thread_info *thread )
@@ -2982,18 +2750,6 @@ void mul24_impl( const ptx_instruction *pI, ptx_thread_info *thread )
    }
 
    thread->set_operand_value(dst, data, i_type, thread, pI);
-
-   /////////////////////my editdebug
-   /*if(0 && thread->get_hw_sid() == 0 && (thread->get_hw_wid() == 0 || thread->get_hw_wid() == 1 || thread->get_hw_wid() == 2
-		   || thread->get_hw_wid() == 3 || thread->get_hw_wid() == 4)
-		   && (thread->get_pc() == 9256)) {
-	   std::fprintf(debug1,"op:mul24, PC:%u, core_id:%d, thread_id:%d, dst_name:%s dst_value:%llu,"
-			   " src1_name:%s src1_value:%llu, src2_name:%s src2_value:%llu, cycle:%llu\n",
-			   thread->get_pc(), thread->get_hw_sid(), thread->get_hw_tid(), dst.name().c_str(),
-			   data.u64, src1.name().c_str(), src1_data.u64, src2.name().c_str(), src2_data.u64,
-			   gpu_sim_cycle + gpu_tot_sim_cycle);
-   }*/
-   /////////////////////my editdebug
 }
 
 void mul_impl( const ptx_instruction *pI, ptx_thread_info *thread )
@@ -3095,17 +2851,6 @@ void mul_impl( const ptx_instruction *pI, ptx_thread_info *thread )
    }
 
    thread->set_operand_value(dst, d, i_type, thread, pI);
-
-   /////////////////////my editdebug
-   /*if(0 && thread->get_hw_sid() == 0 && (thread->get_hw_wid() == 0 || thread->get_hw_wid() == 1 || thread->get_hw_wid() == 2
-		   || thread->get_hw_wid() == 3 || thread->get_hw_wid() == 4)
-		   && (thread->get_pc() == 9328)) {
-	   std::fprintf(debug1,"op:mul, PC:%u, core_id:%d, thread_id:%d, dst_name:%s dst_value:%llu,"
-			   " src1_name:%s src1_value:%llu, src2_name:%s src2_value:%llu, cycle:%llu\n",
-			   thread->get_pc(), thread->get_hw_sid(), thread->get_hw_tid(), dst.name().c_str(),
-			   d.u64, src1.name().c_str(), a.u64, src2.name().c_str(), b.u64, gpu_sim_cycle + gpu_tot_sim_cycle);
-   }*/
-   /////////////////////my editdebug
 }
 
 void neg_impl( const ptx_instruction *pI, ptx_thread_info *thread )
@@ -3738,18 +3483,6 @@ void shl_impl( const ptx_instruction *pI, ptx_thread_info *thread )
    }
 
    thread->set_operand_value(dst, d, i_type, thread, pI);
-
-   /////////////////////my editdebug
-   /*if(0&&thread->get_hw_sid() == 0 && (thread->get_hw_wid() == 0 || thread->get_hw_wid() == 1 || thread->get_hw_wid() == 2
-		   || thread->get_hw_wid() == 3 || thread->get_hw_wid() == 4)
-		   && (thread->get_pc() == 9200 || thread->get_pc() == 9184 || thread->get_pc() == 9152 || thread->get_pc() == 9168)) {
-	   std::fprintf(debug1,"op:shl, PC:%u, core_id:%d, thread_id:%d, dst_name:%s dst_value:%llu,"
-			   " src1_name:%s src1_value:%llu, src2_name:%s src2_value:%llu, cycle:%llu\n",
-			   thread->get_pc(), thread->get_hw_sid(), thread->get_hw_tid(), dst.name().c_str(),
-			   d.u64, src1.name().c_str(), a.u64, src2.name().c_str(),
-			   b.u64, gpu_sim_cycle + gpu_tot_sim_cycle);
-   }*/
-   /////////////////////my editdebug
 }
 
 void shr_impl( const ptx_instruction *pI, ptx_thread_info *thread )
@@ -3934,6 +3667,8 @@ void ssy_impl( const ptx_instruction *pI, ptx_thread_info *thread )
    // TODO: add implementation
 }
 
+////////////////////myeditDSN
+/*
 void st_impl( const ptx_instruction *pI, ptx_thread_info *thread )
 {
    const operand_info &dst = pI->dst();
@@ -3985,6 +3720,95 @@ void st_impl( const ptx_instruction *pI, ptx_thread_info *thread )
    thread->m_last_effective_address = addr;
    thread->m_last_memory_space = space;
 }
+*/
+
+void st_impl( const ptx_instruction *pI, ptx_thread_info *thread )
+{
+   const operand_info &dst = pI->dst();
+   const operand_info &src1 = pI->src1(); //may be scalar or vector of regs
+   unsigned type = pI->get_type();
+   ptx_reg_t addr_reg = thread->get_operand_value(dst, dst, type, thread, 1);
+   ptx_reg_t data;
+   memory_space_t space = pI->get_space();
+   unsigned vector_spec = pI->get_vector();
+
+   memory_space *mem = NULL;
+   addr_t addr = addr_reg.u32;
+
+   decode_space(space,thread,dst,mem,addr);
+
+   size_t size;
+   int t;
+   type_info_key::type_decode(type,size,t);
+
+   if (!vector_spec) {
+      data = thread->get_operand_value(src1, dst, type, thread, 1);
+      mem->write(addr,size/8,&data.s64,thread,pI);
+   } else {
+      if (vector_spec == V2_TYPE) {
+         ptx_reg_t* ptx_regs = new ptx_reg_t[2];
+         thread->get_vector_operand_values(src1, ptx_regs, 2);
+         mem->write(addr,size/8,&ptx_regs[0].s64,thread,pI);
+         mem->write(addr+size/8,size/8,&ptx_regs[1].s64,thread,pI);
+         delete [] ptx_regs;
+      }
+      if (vector_spec == V3_TYPE) {
+         ptx_reg_t* ptx_regs = new ptx_reg_t[3];
+         thread->get_vector_operand_values(src1, ptx_regs, 3);
+         mem->write(addr,size/8,&ptx_regs[0].s64,thread,pI);
+         mem->write(addr+size/8,size/8,&ptx_regs[1].s64,thread,pI);
+         mem->write(addr+2*size/8,size/8,&ptx_regs[2].s64,thread,pI);
+         delete [] ptx_regs;
+      }
+      if (vector_spec == V4_TYPE) {
+         ptx_reg_t* ptx_regs = new ptx_reg_t[4];
+         thread->get_vector_operand_values(src1, ptx_regs, 4);
+         mem->write(addr,size/8,&ptx_regs[0].s64,thread,pI);
+         mem->write(addr+size/8,size/8,&ptx_regs[1].s64,thread,pI);
+         mem->write(addr+2*size/8,size/8,&ptx_regs[2].s64,thread,pI);
+         mem->write(addr+3*size/8,size/8,&ptx_regs[3].s64,thread,pI);
+         delete [] ptx_regs;
+      }
+   }
+
+   if( space.get_type() == global_space ){
+	   memory_space *cache = thread->get_cache_memory();
+
+	   if (!vector_spec) {
+	      data = thread->get_operand_value(src1, dst, type, thread, 1);
+	      cache->write(addr,size/8,&data.s64,thread,pI);
+	   } else {
+	      if (vector_spec == V2_TYPE) {
+	         ptx_reg_t* ptx_regs = new ptx_reg_t[2];
+	         thread->get_vector_operand_values(src1, ptx_regs, 2);
+	         cache->write(addr,size/8,&ptx_regs[0].s64,thread,pI);
+	         cache->write(addr+size/8,size/8,&ptx_regs[1].s64,thread,pI);
+	         delete [] ptx_regs;
+	      }
+	      if (vector_spec == V3_TYPE) {
+	         ptx_reg_t* ptx_regs = new ptx_reg_t[3];
+	         thread->get_vector_operand_values(src1, ptx_regs, 3);
+	         cache->write(addr,size/8,&ptx_regs[0].s64,thread,pI);
+	         cache->write(addr+size/8,size/8,&ptx_regs[1].s64,thread,pI);
+	         cache->write(addr+2*size/8,size/8,&ptx_regs[2].s64,thread,pI);
+	         delete [] ptx_regs;
+	      }
+	      if (vector_spec == V4_TYPE) {
+	         ptx_reg_t* ptx_regs = new ptx_reg_t[4];
+	         thread->get_vector_operand_values(src1, ptx_regs, 4);
+	         cache->write(addr,size/8,&ptx_regs[0].s64,thread,pI);
+	         cache->write(addr+size/8,size/8,&ptx_regs[1].s64,thread,pI);
+	         cache->write(addr+2*size/8,size/8,&ptx_regs[2].s64,thread,pI);
+	         cache->write(addr+3*size/8,size/8,&ptx_regs[3].s64,thread,pI);
+	         delete [] ptx_regs;
+	      }
+	   }
+   }
+
+   thread->m_last_effective_address = addr;
+   thread->m_last_memory_space = space;
+}
+////////////////////myeditDSN
 
 void sub_impl( const ptx_instruction *pI, ptx_thread_info *thread )
 {

@@ -54,10 +54,6 @@
 #include "gpu-cache.h"
 #include "traffic_breakdown.h"
 
-////////////////////////////////////////////////myeditCompress
-#include <queue>          // std::queue
-////////////////////////////////////////////////myeditCompress
-
 #define NO_OP_FLAG            0xFF
 
 /* READ_PACKET_SIZE:
@@ -432,18 +428,6 @@ public:
 		m_last_supervised_issued = m_supervised_warps.end();
 	}
 
-	//////////////////////my editHW3
-	virtual void dynamic_swl_init() {
-	}
-
-	virtual void accumulate_insn(unsigned active_count) {
-	}
-
-	int get_scheduler_id() {
-		return m_id;
-	}
-	//////////////////////my editHW3
-
 	// The core scheduler cycle method is meant to be common between
 	// all the derived schedulers.  The scheduler's behaviour can be
 	// modified by changing the contents of the m_next_cycle_prioritized_warps list.
@@ -750,14 +734,14 @@ public:
 		unsigned inner_level_readin;
 		unsigned outer_level_readin;
 
-		///////////my edit lrrswl
+		///////////myeditlrrswl
 		//int ret = sscanf(config_str, "two_level_active:%d:%d:%d",
 		//		&m_max_active_warps, &inner_level_readin, &outer_level_readin);
 		//assert(3 == ret);
 		int ret = sscanf(config_str, "two_level_active:%d:%d:%d:%d",
 				&m_max_active_warps, &inner_level_readin, &outer_level_readin,
 				&lrr_swl_enabled);
-		///////////my edit lrrswl
+		///////////myeditlrrswl
 
 		m_inner_level_prioritization =
 				(scheduler_prioritization_type) inner_level_readin;
@@ -788,9 +772,10 @@ private:
 	scheduler_prioritization_type m_inner_level_prioritization;
 	scheduler_prioritization_type m_outer_level_prioritization;
 	unsigned m_max_active_warps;
-	///////////my edit lrrswl
+
+	///////////myeditlrrswl
 	unsigned lrr_swl_enabled;
-	///////////my edit lrrswl
+	///////////myeditlrrswl
 };
 
 // Static Warp Limiting Scheduler
@@ -808,21 +793,9 @@ public:
 		m_last_supervised_issued = m_supervised_warps.begin();
 	}
 
-	/////////////////////////////////my editHW3
-	void dynamic_swl_init();
-	void accumulate_insn(unsigned active_count);
-
-	unsigned lrr_based_swl; /////////my editlrr_swl
-	unsigned dynamic_swl_enabled;
-	unsigned long long per_scheduler_insn;
-	double per_scheduler_IPC;
-	double left_IPC;
-	double right_IPC;
-
-	unsigned new_kernel;
-	int new_kernel_counter;
-	static unsigned size_options[8];
-	/////////////////////////////////my editHW3
+////////////////////////////////myeditlrrswl
+	unsigned lrr_based_swl;
+////////////////////////////////myeditlrrswl
 
 protected:
 	scheduler_prioritization_type m_prioritization;
@@ -838,12 +811,6 @@ public:
 		m_initialized = false;
 	}
 
-	///////////////////////Haonanedit
-	void refresh_arbiter() {
-		m_arbiter.alloc_bank_for_compressor();
-	}
-	///////////////////////Haonanedit
-
 	void add_cu_set(unsigned cu_set, unsigned num_cu, unsigned num_dispatch);
 	typedef std::vector<register_set*> port_vector_t;
 	typedef std::vector<unsigned int> uint_vector_t;
@@ -855,20 +822,10 @@ public:
 	bool writeback(const warp_inst_t &warp); // might cause stall
 
 	void step() {
-#if RF_LAT == 1
-		////////////////////////////////////////////////myeditCompress
-		m_arbiter.arbiter_step();//compresser
-		////////////////////////////////////////////////myeditCompress
-#endif
+
 		dispatch_ready_cu();
 		allocate_reads();
-#if RF_LAT == 1
-		////////////////////////////////////////////////myeditCompress
-		for (unsigned i = 0; i < m_cu.size(); i++) {
-			m_cu[i]->collector_step(); //decompresser
-		}
-		////////////////////////////////////////////////myeditCompress
-#endif
+
 		for (unsigned p = 0; p < m_in_ports.size(); p++)
 			allocate_cu(p);
 		process_banks();/////////////myquestion:Here it just reset the allocation for all banks to model the bank conflict thus latency. It seems the only way to indicate a finished instruction is to release the scoreboard?
@@ -929,17 +886,6 @@ private:
 			m_bank = register_bank(reg, warp->warp_id(), num_banks,
 					bank_warp_shift);
 		}
-
-		////////////////////////////////////////////////myeditCompress
-		op_t(const op_t &op) {
-			m_valid = op.m_valid;
-			m_warp = op.m_warp;
-			m_register = op.m_register;
-			m_cu = op.m_cu;
-			m_operand = op.m_operand;
-			m_bank = op.m_bank;
-		}
-		////////////////////////////////////////////////myeditCompress
 
 		// accessors
 		bool valid() const {
@@ -1008,20 +954,6 @@ private:
 			m_valid = false;
 		}
 
-		////////////////////Haonanedit
-		const warp_inst_t *get_warp() const {
-			return m_warp;
-		}
-
-		void set_warp(warp_inst_t *warp) {
-			m_warp = warp;
-		}
-
-		//////////////////or this?
-		//void set_warp(const warp_inst_t *warp){
-		//	m_warp = warp;
-		//}
-		////////////////////Haonanedit
 	private:
 		bool m_valid;
 		collector_unit_t *m_cu;
@@ -1083,39 +1015,6 @@ private:
 		op_t m_op;
 	};
 
-	///////////////////////////////////////////////////////////////////////////////myeditCompress
-	struct warp_operand { //for collector decompresser read
-		warp_operand() :
-				latency(-1), op_num(17) {
-		}
-		warp_operand(int lat, const unsigned op) :
-				latency(lat), op_num(op) {
-		}
-
-		int latency;
-		unsigned op_num;
-	};
-
-	struct warp_opt_and_bank { //for arbiter compresser write
-	public:
-		warp_opt_and_bank() :
-				latency(-1), bank(17), operand() {
-
-		}
-		warp_opt_and_bank(int lat, unsigned bk) :
-				latency(lat), bank(bk), operand() {
-		}
-
-		warp_opt_and_bank(int lat, unsigned bk, op_t op) :
-				latency(lat), bank(bk), operand(op) {
-		}
-
-		int latency;
-		unsigned bank;
-		op_t operand;
-	};
-	////////////////////////////////////////////////////////////////////////////myeditCompress
-
 	class arbiter_t {
 	public:
 		// constructors
@@ -1127,10 +1026,6 @@ private:
 			_outmatch = NULL;
 			_request = NULL;
 			m_last_cu = 0;
-
-			////////////////////////////////////////////////myeditCompress
-			m_allocated_bank1 = NULL;
-			////////////////////////////////////////////////myeditCompress
 		}
 		void init(unsigned num_cu, unsigned num_banks) {
 			assert(num_cu > 0);
@@ -1144,14 +1039,7 @@ private:
 				_request[i] = new int[m_num_collectors];
 
 			m_queue = new std::list<op_t>[num_banks];
-#if RF_LAT == 1
-			////////////////////////////////////////////////myeditCompress
-			m_allocated_bank1 = new allocation_t[num_banks];
-			c = new compresser(m_allocated_bank);
 
-			c->init(0);///////edit compresser's latency here
-			////////////////////////////////////////////////myeditCompress
-#endif
 			m_allocated_bank = new allocation_t[num_banks];
 			m_allocator_rr_head = new unsigned[num_cu];
 			for (unsigned n = 0; n < num_cu; n++)
@@ -1159,80 +1047,6 @@ private:
 			reset_alloction();
 		}
 
-		////////////////////////////////////////////////myeditCompress
-		class compresser { //for write
-		public:
-			compresser(allocation_t *&m_allocated_bank) :
-					m_allocated_bank2(m_allocated_bank) {
-				c_latency = 1;
-			}
-
-			void init(int latency) {
-				c_latency = latency;
-				c_pipeline.resize(16 * (c_latency + 1));
-
-				for (int i = c_pipeline.size() - 1; i >= 0; i--) {
-					c_pipeline[i] = warp_opt_and_bank(-1, unsigned(17));
-				}
-			}
-
-			void add(op_t op, unsigned bank_num) {
-				for (unsigned i = 0; i < c_pipeline.size(); i++) {
-					if (c_pipeline[i].latency == -1) {
-						c_pipeline[i].latency = c_latency;
-						c_pipeline[i].bank = bank_num;
-						c_pipeline[i].operand = op;
-						return;
-					}
-				}
-				assert(0 && "compresser pipeline full");
-			}
-
-			void compresser_step() {
-				for (unsigned i = 0; i < c_pipeline.size(); i++) {
-
-					///////////////////////Haonanedit
-					/*
-					 if (c_pipeline[i].latency == 0) {
-					 c_pipeline[i].latency = -1;
-					 m_allocated_bank2[c_pipeline[i].bank].alloc_write(
-					 c_pipeline[i].operand); //deliver to RBs
-					 }
-					 */
-					///////////////////////Haonanedit
-					if (c_pipeline[i].latency > 0) {
-						c_pipeline[i].latency = c_pipeline[i].latency - 1;
-					}
-				}
-			}
-
-			///////////////////////Haonanedit
-			//It is separated from compresser_step() to happen prior to all writes,
-			//in order to prioritize on-fly compression-write than no-compression-write in one cycle.
-			void compresser_to_bank() {
-				if (c_latency > 0) {
-					for (unsigned i = 0; i < c_pipeline.size(); i++) {
-						if (c_pipeline[i].latency == 0) {
-							m_allocated_bank2[c_pipeline[i].bank].alloc_write(
-									c_pipeline[i].operand);
-							c_pipeline[i].latency = -1;
-						}
-					}
-				}
-			}
-
-			int get_latency() {
-				return c_latency;
-			}
-			///////////////////////Haonanedit
-
-		private:
-			std::vector<warp_opt_and_bank> c_pipeline;
-			int c_latency;
-			allocation_t *&m_allocated_bank2; // bank # -> register that wins
-		};
-
-		////////////////////////////////////////////////myeditCompress
 		void arbiter_dump() {
 			printf(
 					"#######################arbiter m_queue dump#################\n");
@@ -1249,22 +1063,6 @@ private:
 				fflush(stdout);
 			}
 		}
-
-		void arbiter_step() {
-			///////////////////////Haonanedit
-			//c->compresser_step();
-			if (c->get_latency() > 0) {
-				c->compresser_step();
-			}
-			///////////////////////Haonanedit
-		}
-
-		///////////////////////Haonanedit
-		void alloc_bank_for_compressor() {
-			c->compresser_to_bank();
-		}
-		///////////////////////Haonanedit
-		////////////////////////////////////////////////myeditCompress
 
 		// accessors
 		void dump(FILE *fp) const {
@@ -1291,16 +1089,10 @@ private:
 		std::list<op_t> allocate_reads();
 
 		void add_read_requests(collector_unit_t *cu) {
-			//const op_t *src = cu->get_operands();
-			////////////////////////////////////////////////myeditCompress
-			std::vector<op_t> src = cu->get_operands();
-			////////////////////////////////////////////////myeditCompress
+			const op_t *src = cu->get_operands();
 
 			for (unsigned i = 0; i < MAX_REG_OPERANDS * 2; i++) {
-				//const op_t &op = src[i];
-				////////////////////////////////////////////////myeditCompress
-				op_t op = src[i];
-				////////////////////////////////////////////////myeditCompress
+				const op_t &op = src[i];
 
 				if (op.valid()) {
 					unsigned bank = op.get_bank();
@@ -1309,68 +1101,14 @@ private:
 			}
 		}
 
-		///////////////////////Haonanedit
-#if RF_LAT == 0
 		bool bank_idle(unsigned bank) const {
 			return m_allocated_bank[bank].is_free();
-			////////////////////////////////////////////////myeditCompress
-			//return m_allocated_bank1[bank].is_free();
-			////////////////////////////////////////////////myeditCompress
-		}
-#else
-		bool bank_idle(unsigned bank) const {
-
-			//When there's no-compression write, compresser delay = 0 case should be handled.
-			//0 is a special case, because a compression-write after a no-compression-write
-			//will previously not check the register banks conflict but will be arrived at the
-			//same cycle as the no-compression-write, causing a is_free() failure.
-			//The 0 case use only one bit set and update it before it goes to compresser.
-			if (c->get_latency() == 0) {
-				return m_allocated_bank[bank].is_free();
-			} else {
-				return m_allocated_bank1[bank].is_free();
-			}
 		}
 
-		bool bank_idle_no_compression(unsigned bank) const {
-			return m_allocated_bank[bank].is_free();
-		}
-		///////////////////////Haonanedit
-#endif
-
-#if RF_LAT == 0
 		void allocate_bank_for_write(unsigned bank, const op_t &op) {
 			assert(bank < m_num_banks);
 			m_allocated_bank[bank].alloc_write(op);
 		}
-		///////////////////////Haonanedit
-#else
-		////////////////////////////////////////////////myeditCompress
-		//void allocate_bank_for_write(unsigned bank, op_t op) {
-		//	assert(bank < m_num_banks);
-		//	m_allocated_bank1[bank].alloc_write(op);
-		//	c->add(op, bank);
-		//}
-		////////////////////////////////////////////////myeditCompress
-
-		void allocate_bank_for_write(unsigned bank, op_t op) {
-			assert(bank < m_num_banks);
-
-			if (c->get_latency() == 0) {
-				m_allocated_bank[bank].alloc_write(op);
-			} else {
-				m_allocated_bank1[bank].alloc_write(op);
-				c->add(op, bank);
-			}
-		}
-
-		void allocate_bank_for_write_no_compression(unsigned bank,
-				const op_t &op) {
-			assert(bank < m_num_banks);
-			m_allocated_bank[bank].alloc_write(op);
-		}
-		///////////////////////Haonanedit
-#endif
 
 		void allocate_for_read(unsigned bank, const op_t &op) {
 			assert(bank < m_num_banks);
@@ -1380,11 +1118,6 @@ private:
 		void reset_alloction() {
 			for (unsigned b = 0; b < m_num_banks; b++) {
 				m_allocated_bank[b].reset();
-#if RF_LAT == 1
-				////////////////////////////////////////////////myeditCompress
-				m_allocated_bank1[b].reset();
-				////////////////////////////////////////////////myeditCompress
-#endif
 			}
 		}
 
@@ -1394,11 +1127,6 @@ private:
 		allocation_t *m_allocated_bank; // bank # -> register that wins
 
 		std::list<op_t> *m_queue;
-
-		////////////////////////////////////////////////myeditCompress
-		allocation_t *m_allocated_bank1;
-		compresser *c;
-		////////////////////////////////////////////////myeditCompress
 
 		unsigned *m_allocator_rr_head; // cu # -> next bank to check for request (rr-arb)
 		unsigned m_last_cu; // first cu to check while arb-ing banks (rr)
@@ -1429,13 +1157,7 @@ private:
 			m_warp = NULL;
 			m_output_register = NULL;
 
-			//m_src_op = new op_t[MAX_REG_OPERANDS * 2];
-			////////////////////////////////////////////////myeditCompress
-			m_src_op.resize(MAX_REG_OPERANDS * 2);
-			for (unsigned i = 0; i < m_src_op.size(); i++) {
-				m_src_op[i] = op_t();
-			}
-			////////////////////////////////////////////////myeditCompress
+			m_src_op = new op_t[MAX_REG_OPERANDS * 2];
 
 			m_not_ready.reset();
 			m_warp_id = -1;
@@ -1443,85 +1165,12 @@ private:
 			m_bank_warp_shift = 0;
 		}
 
-		////////////////////////////////////////////////myeditCompress
-		class decompresser { //for read in collector
-		public:
-			decompresser(collector_unit_t &collector) :
-					OCU(collector) {
-				dc_latency = 2;
-			}
-
-			void init(int latency) {
-
-				dc_latency = latency;
-				dc_pipeline.resize(dc_latency + 1);
-
-				for (unsigned i = 0; i < dc_pipeline.size(); i++) {
-					dc_pipeline[i] = warp_operand(-1, 17);
-				}
-
-			}
-
-			void add(unsigned op) {
-				for (unsigned i = 0; i < dc_pipeline.size(); i++) {
-					if (dc_pipeline[i].latency == -1) {
-						dc_pipeline[i].latency = dc_latency;
-						dc_pipeline[i].op_num = op;
-						return;
-					}
-				}
-				assert(0 && "decompresser pipeline full"); //should be non-stallable
-			}
-
-			void decompresser_step() {
-				for (unsigned i = 0; i < dc_pipeline.size(); i++) {
-					if (dc_pipeline[i].latency == 0) {
-						dc_pipeline[i].latency = -1;
-						(OCU.m_not_ready).reset(dc_pipeline[i].op_num); //deliver to OCU
-					}
-					if (dc_pipeline[i].latency > 0) {
-						dc_pipeline[i].latency = dc_pipeline[i].latency - 1;
-					}
-				}
-			}
-
-		private:
-			std::vector<warp_operand> dc_pipeline;
-			int dc_latency;
-			collector_unit_t &OCU;
-		};
-
-		void collector_step() {
-			dc->decompresser_step();
-		}
-
-		void dump_m_not_ready() {
-			printf("debug:(!m_free):%d,m_not_ready.none():%d,"
-					"----------------looking for ready COLLECTOR UNIT\n",
-					(!m_free), m_not_ready.none());
-			fflush (stdout);
-
-			printf("debug:(!m_free):0:%u,1:%u,2:%u,3:%u,4:%u,5:%u,6:%u,7:%u"
-					"---------COLLECTOR NUMBER:%u\n", m_not_ready.test(0),
-					m_not_ready.test(1), m_not_ready.test(2),
-					m_not_ready.test(3), m_not_ready.test(4),
-					m_not_ready.test(5), m_not_ready.test(6),
-					m_not_ready.test(7), get_id());
-			fflush(stdout);
-		}
-		////////////////////////////////////////////////myeditCompress
-
 		// accessors
 		bool ready() const;
 
-		//const op_t *get_operands() const {
-		//	return m_src_op;
-		//}
-		////////////////////////////////////////////////myeditCompress
-		std::vector<op_t> get_operands() const {
+		const op_t *get_operands() const {
 			return m_src_op;
 		}
-		////////////////////////////////////////////////myeditCompress
 
 		void dump(FILE *fp, const shader_core_ctx *shader) const;
 
@@ -1546,26 +1195,9 @@ private:
 				const core_config *config, opndcoll_rfu_t *rfu);
 		bool allocate(register_set* pipeline_reg, register_set* output_reg);
 
-#if RF_LAT == 0
 		void collect_operand(unsigned op) {
 			m_not_ready.reset(op);
 		}
-#else
-		//////////////////////////Haonanedit
-		////////////////////////////////////////////////myeditCompress
-		//void collect_operand(unsigned op) {
-		//	dc->add(op);
-		//}
-		////////////////////////////////////////////////myeditCompress
-		void collect_operand(unsigned op) {
-			dc->add(op);
-		}
-
-		void collect_operand_no_compression(unsigned op) {
-			m_not_ready.reset(op);
-		}
-		//////////////////////////Haonanedit
-#endif
 
 		unsigned get_num_operands() const {
 			return m_warp->get_num_operands();
@@ -1585,11 +1217,7 @@ private:
 		warp_inst_t *m_warp;
 		register_set* m_output_register; // pipeline register to issue to when ready
 
-		//op_t *m_src_op;
-		////////////////////////////////////////////////myeditCompress
-		std::vector<op_t> m_src_op; //notchanged
-		decompresser *dc;
-		////////////////////////////////////////////////myeditCompress
+		op_t *m_src_op;
 
 		std::bitset<MAX_REG_OPERANDS * 2> m_not_ready;
 		unsigned m_num_banks;
@@ -2742,10 +2370,6 @@ private:
 	// is that the dynamic_warp_id is a running number unique to every warp
 	// run on this shader, where the warp_id is the static warp slot.
 	unsigned m_dynamic_warp_id;
-
-	//////////////////////////my editHW3
-	unsigned current_scheduler;
-	//////////////////////////my editHW3
 };
 
 class simt_core_cluster {

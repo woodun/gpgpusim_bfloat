@@ -38,17 +38,9 @@
 #include <list>
 #include <stdio.h>
 
-////////////////my editCAA
-//#include "cache_access_analysis.h"//declaration of inserted functions.
-//bool CAA_result_printed = false;
+////////////////myeditCAA
 extern unsigned kernel_index;
-//std::FILE * debug123 = std::fopen("/sciclone/data10/hwang07/GPU_RESEARCH/swl/swl_outputs/RESULTS/debug.txt",
-//		"a");
-////////////////my editCAA
-
-//////////////myedit AMC
-#include "../approximate_memory_controller.h"//declaration of inserted functions.
-//////////////myedit AMC
+////////////////myeditCAA
 
 // constants for statistics printouts
 #define GPU_RSTAT_SHD_INFO 0x1
@@ -170,42 +162,14 @@ struct memory_config {
 			option_parser_t dram_opp = option_parser_create();
 
 			//////////////////////myeditamc
+			option_parser_register(dram_opp, "truncate_enabled", OPT_UINT32,
+					&truncate_enabled, "is truncate enabled", "0");
+
 			option_parser_register(dram_opp, "approx_enabled", OPT_UINT32,
 					&approx_enabled, "is approx enabled", "0");
 
-			option_parser_register(dram_opp, "redo_approx", OPT_UINT32,
-					&redo_approx, "set requests to be approximate", "0");
-
-			option_parser_register(dram_opp, "remove_all", OPT_UINT32,
-					&remove_all,
-					"remove all low locality requests regardless of whether it is approximable or not",
-					"0");
-
 			option_parser_register(dram_opp, "print_profile", OPT_UINT32,
 					&print_profile, "print profile info or not", "0");
-
-			option_parser_register(dram_opp, "delay_threshold", OPT_UINT32,
-					&delay_threshold,
-					"the maximum time a request can be delayed in the delay queue",
-					"0");
-
-			option_parser_register(dram_opp, "delay_queue_size", OPT_UINT32,
-					&delay_queue_size,
-					"the maximum request capacity in the delay queue per bank (use new implementation if greater than one. also used to set the priority in dynamic.)",
-					"0");
-
-			option_parser_register(dram_opp, "remove_in_bank", OPT_UINT32,
-					&remove_in_bank,
-					"remove in the bank or not, otherwise it would be removed in dram",
-					"0");
-
-			option_parser_register(dram_opp, "delay_only", OPT_UINT32,
-					&delay_only, "only delay the requests, not removing them",
-					"0");
-
-			option_parser_register(dram_opp, "separate_queue", OPT_UINT32,
-					&separate_queue,
-					"use separate queue for normal and delayed requests", "0");
 
 			option_parser_register(dram_opp, "redo_in_l1", OPT_UINT32,
 					&redo_in_l1, "redo in l1", "0");
@@ -213,11 +177,10 @@ struct memory_config {
 			option_parser_register(dram_opp, "always_fill", OPT_UINT32,
 					&always_fill, "always fill in l1 and l2", "0");
 
-			option_parser_register(dram_opp, "searching_radius", OPT_UINT32,
-								&searching_radius, "searching radius in l2", "0");
-
-			option_parser_register(dram_opp, "no_echo", OPT_UINT32, &no_echo,
-					"echo cannot be issued before time-up", "0");
+			option_parser_register(dram_opp, "remove_all", OPT_UINT32,
+					&remove_all,
+					"remove all low locality requests regardless of whether it is approximable or not",
+					"0");
 
 			option_parser_register(dram_opp, "bypassl2d", OPT_UINT32,
 					&bypassl2d, "bypass l2d cache", "0");
@@ -225,38 +188,23 @@ struct memory_config {
 			option_parser_register(dram_opp, "coverage", OPT_UINT32,
 					&coverage, "coverage of approximation", "0");
 
-			option_parser_register(dram_opp, "enumber", OPT_UINT32,
-					&e_number, "enumber", "0");
+			option_parser_register(dram_opp, "threshold_bw", OPT_UINT32,
+					&threshold_bw, "threshold_bw", "0");
+
+			option_parser_register(dram_opp, "threshold_length", OPT_UINT32,
+					&threshold_length, "threshold_length", "0");
 
 			option_parser_register(dram_opp, "dynamic_on", OPT_UINT32,
 								&dynamic_on, "dynamically picking the e", "0");
-
-			option_parser_register(dram_opp, "auto_delay", OPT_UINT32,
-								&auto_delay, "automatically determine the delay", "0");
-
-			option_parser_register(dram_opp, "profiling_cycles_es", OPT_UINT32,
-								&profiling_cycles_es, "profiling window size for coverage and dynamic e", "0");
-
-			option_parser_register(dram_opp, "warmup_cycles", OPT_UINT32,
-								&warmup_cycles, "time needed before removal", "0");
-
-			option_parser_register(dram_opp, "l2_warmup_count", OPT_UINT32,
-								&l2_warmup_count, "accesses needed for l2 to warmup", "0");
-
-			option_parser_register(dram_opp, "min_bw", OPT_UINT32,
-								&min_bw, "minimum bw ratio guarantee", "0");
-
-			option_parser_register(dram_opp, "activation_window", OPT_UINT32,
-								&activation_window, "activation window size", "0");
-
-			option_parser_register(dram_opp, "request_window", OPT_UINT32,
-								&request_window, "request window size", "0");
 
 			option_parser_register(dram_opp, "reprofiling_cycles", OPT_UINT32,
 								&reprofiling_cycles, "cycles after which to redo bw profiling", "0");
 
 			option_parser_register(dram_opp, "profiling_cycles_bw", OPT_UINT32,
 											&profiling_cycles_bw, "profiling window size for bw", "0");
+
+			option_parser_register(dram_opp, "distributed_scheduling", OPT_UINT32,
+											&distributed_scheduling, "scheduling is distributed across each memory controller or not", "0");
 			//////////////////////myeditamc
 
 			option_parser_register(dram_opp, "nbk", OPT_UINT32, &nbk,
@@ -355,30 +303,18 @@ struct memory_config {
 	unsigned tRTPL; //read to precharge delay when bank groups are enabled for GDDR5 this is identical to RTPS, if for other DRAM this is different, you will need to split them in two
 
 	//////////////////////myeditamc
+	unsigned truncate_enabled;
 	unsigned approx_enabled;
-	unsigned redo_approx;
-	unsigned remove_all;
 	unsigned print_profile;
-	unsigned delay_threshold;
-	unsigned delay_queue_size;
-	unsigned remove_in_bank;
-	unsigned delay_only;
-	unsigned separate_queue;
-	unsigned redo_in_l1;
+	unsigned redo_in_l1; ///////////////myedit bfloat : make sure some of these are assigned to extern variables
+	unsigned distributed_scheduling; ///////////////myedit bfloat : make sure all these are assigned to global variables
 	unsigned always_fill;
-	unsigned searching_radius;
-	unsigned no_echo;
+	unsigned remove_all;
 	unsigned bypassl2d;
 	unsigned coverage;
-	unsigned e_number;
+	unsigned threshold_bw;
+	unsigned threshold_length;
 	unsigned dynamic_on;
-	unsigned auto_delay;
-	unsigned profiling_cycles_es;
-	unsigned warmup_cycles;
-	unsigned l2_warmup_count;
-	unsigned min_bw;
-	unsigned activation_window;
-	unsigned request_window;
 	unsigned reprofiling_cycles;
 	unsigned profiling_cycles_bw;
 	///////////////////////myeditamc
@@ -419,10 +355,10 @@ extern unsigned long long gpu_sim_cycle;
 extern unsigned long long gpu_tot_sim_cycle;
 extern bool g_interactive_debugger_enabled;
 
-////////////////////my editpredictor
+////////////////////myeditpredictor
 extern unsigned long long gpu_tot_sim_insn;
 extern unsigned long long gpu_sim_insn;
-////////////////////my editpredictor
+////////////////////myeditpredictor
 
 /////////////myedit amc
 extern unsigned long long temp_gpu_sim_insn;
@@ -655,10 +591,10 @@ private:
 	void clear_executed_kernel_info(); //< clear the kernel information after stat printout
 
 public:
-	////////////////////my editpredictor
+	////////////////////myeditpredictor
 	//unsigned long long gpu_sim_insn;
 	////unsigned long long  gpu_tot_sim_insn;
-	////////////////////my editpredictor
+	////////////////////myeditpredictor
 
 	unsigned long long gpu_sim_insn_last_update;
 	unsigned gpu_sim_insn_last_update_sid;

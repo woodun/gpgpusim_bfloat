@@ -276,13 +276,13 @@ public:
    void ptx_fetch_inst( inst_t &inst ) const;
    void ptx_exec_inst( warp_inst_t &inst, unsigned lane_id );
 
-   //////////////myedit predictor
+   //////////////myeditpredictor
    void ptx_exec_ld_at_pc(addr_t pc_from_mf);
 
    unsigned ptx_is_ld_at_pc(addr_t pc_from_mf);
 
    unsigned ptx_is_global_at_pc(addr_t pc_from_mf);
-   //////////////myedit predictor
+   //////////////myeditpredictor
 
    const ptx_version &get_ptx_version() const;
    void set_reg( const symbol *reg, const ptx_reg_t &value );
@@ -410,9 +410,9 @@ public:
 
    memory_space *get_global_memory() { return m_gpu->get_global_memory(); }
 
-   /////////////myedit predictor
+   /////////////myeditpredictor
    memory_space *get_cache_memory() { return m_gpu->get_cache_memory(); }
-   /////////////myedit predictor
+   /////////////myeditpredictor
 
    memory_space *get_tex_memory() { return m_gpu->get_tex_memory(); }
    memory_space *get_surf_memory() { return m_gpu->get_surf_memory(); }

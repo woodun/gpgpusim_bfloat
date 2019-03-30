@@ -47,10 +47,6 @@
 #include "traffic_breakdown.h"
 #include "shader_trace.h"
 
-//////////////myedit AMC
-#include "../approximate_memory_controller.h"
-//////////////myedit AMC
-
 #define PRIORITIZE_MSHR_OVER_WB 1
 #define MAX(a,b) (((a)>(b))?(a):(b))
 #define MIN(a,b) (((a)<(b))?(a):(b))
@@ -126,14 +122,6 @@ shader_core_ctx::shader_core_ctx(class gpgpu_sim *gpu,
 	m_warp.resize(m_config->max_warps_per_shader, shd_warp_t(this, warp_size));
 	m_scoreboard = new Scoreboard(m_sid, m_config->max_warps_per_shader);
 
-#if RF_LAT == 1
-	///////////////////////////////////////////////////////////////////////////////myeditCompress
-	m_scoreboard->init_latency(0);///////edit scoreboard's latency here
-	////this latency should be the same as: compresser write lat.
-	///(not compresser write lat - decompresser read lat!)
-	///////////////////////////////////////////////////////////////////////////////myeditCompress
-#endif
-
 	//scedulers
 	//must currently occur after all inputs have been initialized.
 	std::string sched_config = m_config->gpgpu_scheduler_string;
@@ -149,8 +137,7 @@ shader_core_ctx::shader_core_ctx(class gpgpu_sim *gpu,
 	 sched_config.find("warp_limiting") != std::string::npos ?
 	 CONCRETE_SCHEDULER_WARP_LIMITING : NUM_CONCRETE_SCHEDULERS;
 	 */
-	////////////////////////////myedit lrrswl
-	////////////////////////////myedit lrrswl
+
 	const concrete_scheduler scheduler =
 			sched_config.find("lrr") != std::string::npos ?
 					CONCRETE_SCHEDULER_LRR :
@@ -354,12 +341,6 @@ shader_core_ctx::shader_core_ctx(class gpgpu_sim *gpu,
 
 void shader_core_ctx::reinit(unsigned start_thread, unsigned end_thread,
 		bool reset_not_completed) {
-
-	////////////////////my editHW3
-	//for (int i = 0; i < m_config->gpgpu_num_sched_per_core; ++i) {
-	//	schedulers[i]->dynamic_swl_init();
-	//}
-	////////////////////my editHW3
 
 	if (reset_not_completed) {
 		m_not_completed = 0;
@@ -805,9 +786,9 @@ void shader_core_ctx::issue_warp(register_set& pipe_reg_set,
 	assert(next_inst->valid());
 	**pipe_reg = *next_inst; // static instruction information
 
-	/////////////////////////my editHW3
+	/////////////////////////myeditHW3
 	(*pipe_reg)->scheduler_index = current_scheduler;
-	/////////////////////////my editHW3
+	/////////////////////////myeditHW3
 
 	(*pipe_reg)->issue(active_mask, warp_id, gpu_tot_sim_cycle + gpu_sim_cycle,
 			m_warp[warp_id].get_dynamic_warp_id()); // dynamic instruction information
@@ -876,7 +857,7 @@ void scheduler_unit::order_lrr(std::vector<T>& result_list,
 	typename std::vector<T>::const_iterator iter =
 			(last_issued_from_input == input_list.end()) ?
 					input_list.begin() : last_issued_from_input + 1;
-	//////////////my editlrrswl
+	//////////////myeditlrrswl
 	for (unsigned count = 0; count < num_warps_to_add; ++iter, ++count) {
 		if (iter == input_list.end()) {
 			iter = input_list.begin();
@@ -904,7 +885,7 @@ void scheduler_unit::order_lrr(std::vector<T>& result_list,
 
 	 }
 	 */
-	//////////////my editlrrswl
+	//////////////myeditlrrswl
 	////////////////debug
 	/*
 	 if (get_scheduler_id() == 0 && get_sid() == 0) {
@@ -2507,12 +2488,12 @@ void two_level_active_scheduler::order_warps() {
 //If there is space in m_next_cycle_prioritized_warps, promote the next m_pending_warps
 	unsigned num_promoted = 0;
 	if (SCHEDULER_PRIORITIZATION_SRR == m_outer_level_prioritization) {
-///////////my edit lrrswl
+///////////myeditlrrswl
 		if (lrr_swl_enabled) {
 			std::sort(m_pending_warps.begin(), m_pending_warps.end(),
 					scheduler_unit::sort_warps_by_oldest_dynamic_id);
 		}
-///////////my edit lrrswl
+///////////myeditlrrswl
 		while (m_next_cycle_prioritized_warps.size() < m_max_active_warps) {
 			m_next_cycle_prioritized_warps.push_back(m_pending_warps.front());
 			m_pending_warps.pop_front();
@@ -2529,7 +2510,7 @@ void two_level_active_scheduler::order_warps() {
 	assert(num_promoted == num_demoted);
 }
 
-/////////////////////////////////my editHW3
+/////////////////////////////////myeditHW3
 void swl_scheduler::dynamic_swl_init() {
 
 	if (dynamic_swl_enabled) {
@@ -2551,7 +2532,7 @@ void swl_scheduler::accumulate_insn(unsigned active_count) {
 }
 
 unsigned swl_scheduler::size_options[8] = { 1, 2, 4, 8, 16, 24, 32, 48 };
-/////////////////////////////////my editHW3
+/////////////////////////////////myeditHW3
 
 swl_scheduler::swl_scheduler(shader_core_stats* stats, shader_core_ctx* shader,
 		Scoreboard* scoreboard, simt_stack** simt,
@@ -2562,14 +2543,14 @@ swl_scheduler::swl_scheduler(shader_core_stats* stats, shader_core_ctx* shader,
 				mem_out, id) {
 
 	unsigned m_prioritization_readin;
-/////////////////////////////////my editHW3
+/////////////////////////////////myeditHW3
 //int ret = sscanf( config_string,
 //                  "warp_limiting:%d:%d:%d",
 //                 &m_prioritization_readin,
 //                  &m_num_warps_to_limit
 //                 );
 	dynamic_swl_enabled = 0;
-	lrr_based_swl = 0; /////////my editlrr_swl
+	lrr_based_swl = 0; /////////myeditlrrswl
 
 	sscanf(config_string, "warp_limiting:%d:%d:%d:%d", &m_prioritization_readin,
 			&m_num_warps_to_limit, &dynamic_swl_enabled, &lrr_based_swl);
@@ -2577,7 +2558,7 @@ swl_scheduler::swl_scheduler(shader_core_stats* stats, shader_core_ctx* shader,
 //dynamic_swl_init();
 
 //assert(2 == ret);
-/////////////////////////////////my editHW3
+/////////////////////////////////myeditHW3
 
 	m_prioritization = (scheduler_prioritization_type) m_prioritization_readin;
 // Currently only GTO is implemented
@@ -2585,12 +2566,8 @@ swl_scheduler::swl_scheduler(shader_core_stats* stats, shader_core_ctx* shader,
 	assert(m_num_warps_to_limit <= shader->get_config()->max_warps_per_shader);
 }
 
-///////////////////////////////my editHW3
-//std::FILE * debug = std::fopen("/home/scratch/hwang/debug.txt", "w");
-///////////////////////////////my editHW3
-
 void swl_scheduler::order_warps() {
-///////////////////////////////my editHW3
+///////////////////////////////myeditHW3
 	if (dynamic_swl_enabled) {
 		if (gpu_sim_cycle == 0) { //if new kernel
 			dynamic_swl_init();
@@ -2671,7 +2648,7 @@ void swl_scheduler::order_warps() {
 			}
 		}
 	}
-///////////////////////////////my editHW3
+///////////////////////////////myeditHW3
 
 //if (lrr_based_swl == 0) { ////////////gto based
 	if (SCHEDULER_PRIORITIZATION_GTO == m_prioritization) {
@@ -2685,26 +2662,11 @@ void swl_scheduler::order_warps() {
 				m_prioritization);
 		abort();
 	}
-//} else { ////////////my editlrr_swl
+//} else { ////////////myeditlrrswl
 //	order_lrr(m_next_cycle_prioritized_warps, m_supervised_warps,
 //			m_last_supervised_issued,
 //			MIN( m_num_warps_to_limit, m_supervised_warps.size()));
-//}
-
-/////////////////////////////////my editHW3
-	/*
-	 if (get_scheduler_id() == 0 && get_sid() == 0) {
-	 //std::fprintf(debug, "-----------------one cycle---------------\n");
-	 for (std::vector<shd_warp_t*>::const_iterator iter =
-	 m_next_cycle_prioritized_warps.begin();
-	 iter != m_next_cycle_prioritized_warps.end(); iter++) {
-
-	 //std::fprintf(debug, "warp_id:%u, dynamic_warp_id:%u)\n",
-	 //(*iter)->get_warp_id(), (*iter)->get_dynamic_warp_id());
-	 }
-	 }
-	 */
-/////////////////////////////////my editHW3
+//
 }
 
 void shader_core_ctx::read_operands() {
@@ -2871,20 +2833,20 @@ void shader_core_ctx::warp_inst_complete(const warp_inst_t &inst) {
 		m_stats->m_num_sim_insn[m_sid] += inst.active_count();
 
 	m_stats->m_num_sim_winsn[m_sid]++;
-///////////////////my editpredictor
+///////////////////myeditpredictor
 //m_gpu->gpu_sim_insn += inst.active_count();
 	gpu_sim_insn += inst.active_count();
-///////////////////my editpredictor
+///////////////////myeditpredictor
 
-	/////////////myedit amc
+	/////////////myeditamc
 	temp_gpu_sim_insn += inst.active_count();
-	/////////////myedit amc
+	/////////////myeditamc
 
 	inst.completed(gpu_tot_sim_cycle + gpu_sim_cycle);
 
-/////////////////////my editHW3
+/////////////////////myeditHW3
 	schedulers[inst.scheduler_index]->accumulate_insn(inst.active_count());
-/////////////////////my editHW3
+/////////////////////myeditHW3
 }
 
 void shader_core_ctx::writeback() {
@@ -3045,10 +3007,6 @@ bool ldst_unit::texture_cycle(warp_inst_t &inst, mem_stage_stall_type &rc_fail,
 	}
 	return inst.accessq_empty(); //done if empty.
 }
-
-///////////myedit prediction
-//#include "../cache_access_analysis.h"//declaration of inserted functions.
-///////////myedit prediction
 
 bool ldst_unit::memory_cycle(warp_inst_t &inst,
 		mem_stage_stall_type &stall_reason,
@@ -3404,7 +3362,7 @@ void ldst_unit::writeback() {
 			if (m_L1D && m_L1D->access_ready()) { //////////////////////////////////L1D is not bypassed
 				mem_fetch *mf = m_L1D->next_access();
 
-				//////////////////////////////////////////////////////////////////////////////////////////////////myedit AMC
+				//////////////myeditDSN
 				if (mf->is_approximated()) { /////////redo with approximate data only.
 
 					if (redo_in_l1) {
@@ -3413,23 +3371,16 @@ void ldst_unit::writeback() {
 						unsigned is_ld = 1;
 						for (unsigned t = 0; t < 32; t++) {
 
-							unsigned thread_of_warp_in_line =
-									(mf->get_access_thread_correspondance())[t]; /////thread ids that belong to this line and belong to this warp
+							unsigned data_starting_index_of_thread_in_line =
+									(mf->get_access_thread_correspondance())[t]; /////data starting indices that belong to this line and belong to this warp
 
-							if (thread_of_warp_in_line > 0) {
+							if (data_starting_index_of_thread_in_line > 0) {
+								if ( mf->get_inst().active(t) ) { ////////////which threads are requesting this line? must redo accordingly.
 
-								if (mf->get_inst().active(
-										thread_of_warp_in_line - 1)) { ////////////which threads are requesting this line? must redo accordingly.
-
-									unsigned tid = 32
-											* (mf->get_inst().warp_id())
-											+ thread_of_warp_in_line - 1; ////////////////////myquestion:is tid local to the CTA?
-									is_ld =
-											m_core->m_thread[tid]->ptx_is_ld_at_pc(
-													mf->get_pc()); ///////////////only if this instruction is ld that it can be used to approximate
+									unsigned tid = 32 * ( mf->get_inst().warp_id() ) + t; ////////////////////myquestion:is tid local to the CTA?
+									is_ld = m_core->m_thread[tid]->ptx_is_ld_at_pc( mf->get_pc() ); ///////////////only if this instruction is ld that it can be used to approximate
 
 									if (is_ld == 0) {
-
 										break;
 									}
 								} /////end of: if (mf->get_inst().active(thread_of_warp_in_line - 1))
@@ -3444,29 +3395,25 @@ void ldst_unit::writeback() {
 
 								for (unsigned t = 0; t < 32; t++) {
 
-									unsigned thread_of_warp_in_line = /////thread ids that belong to this line and belong to this warp
-											(mf->get_access_thread_correspondance())[t]; //////////
+									unsigned data_starting_index_of_thread_in_line = /////data indices that belong to this line and belong to this warp
+											(mf->get_access_thread_correspondance())[t];
 
-									if (thread_of_warp_in_line > 0) { ///////////0 means null, and the real id is: thread_of_warp_in_line - 1
+									if (data_starting_index_of_thread_in_line > 0) { ///////////0 means null, and the real id is: thread_of_warp_in_line - 1
 
-										if (mf->get_inst().active(
-												thread_of_warp_in_line - 1)) { ////////////which threads are requesting this line? must redo accordingly.
+										if ( mf->get_inst().active(t) ) { ////////////which threads are requesting this line? must redo accordingly.
 
-											unsigned tid = 32
-													* (mf->get_inst().warp_id())
-													+ thread_of_warp_in_line
-													- 1; ////////////////////myquestion:is tid local to the CTA?
-											m_core->m_thread[tid]->ptx_exec_ld_at_pc(
-													mf->get_pc()); /////redo load
+											unsigned tid = 32 * ( mf->get_inst().warp_id() ) + t; ////////////////////myquestion:is tid local to the CTA?
+											m_core->m_thread[tid]->ptx_exec_ld_at_pc( mf->get_pc() ); /////redo load
+
 										} ////////////end of: if (mf->get_inst().active(thread_of_warp_in_line - 1))
 									} ////////end of: if (thread_of_warp_in_line > 0)
 								} ////////end of: for (unsigned t = 0; t < 32; t++)
 							} //////end of:if (probe_status == HIT && !mf->get_is_write() && mf->get_access_type() == GLOBAL_ACC_R && !mf->is_access_atomic())
 						} //////end of: if (is_ld == 1)
-					}
+					}/////////end of: if (redo_in_l1) {
 
 				} /////end of: if (mf->is_approximated())
-				  /////////////////////////////////////////////////////////////////////////////////////////////////////myedit AMC
+				//////////////myeditDSN
 
 				m_next_wb = mf->get_inst();	//////////////one writeback is just one access of this instruction.
 				delete mf;
@@ -4207,18 +4154,7 @@ unsigned int shader_core_config::max_cta(const kernel_info_t &k) const {
 
 void shader_core_ctx::cycle() {
 	m_stats->shader_cycles[m_sid]++;
-#if RF_LAT == 1
-///////////////Haonanedit
-////prioritize the on-fly writes.
-	m_operand_collector.refresh_arbiter();
-///////////////Haonanedit
-#endif
 	writeback();
-#if RF_LAT == 1
-////////////////////////////////////////////////myeditCompress
-	m_scoreboard->scoreboard_step();
-////////////////////////////////////////////////myeditCompress
-#endif
 	execute();
 	read_operands(); ////////////////nothing here
 	issue();
@@ -4749,49 +4685,21 @@ bool opndcoll_rfu_t::writeback(const warp_inst_t &inst) {
 	std::list<unsigned>::iterator r;
 	unsigned n = 0;
 
-//////////////////Haonanedit
-#if RF_LAT == 1
-	bool divergent = false;
-	for (unsigned i = 0; i < 32; i++) {
-		if (!inst.active(i)) {
-			divergent = true;
-			break;
-		}
-	}
-#endif
-
 ///different from original code. To fix potential bug in gpgpusim.
 	for (r = regs.begin(); r != regs.end(); r++, n++) {
 		unsigned reg = *r;
 		unsigned bank = register_bank(reg, inst.warp_id(), m_num_banks,
 				m_bank_warp_shift);
-#if RF_LAT == 1
-		if (!divergent && m_arbiter.bank_idle(bank)) {
-		} else if (divergent && m_arbiter.bank_idle_no_compression(bank)) {
-		} else {
-			return false; /////return false here means stall
-		}
-#else
+
 		if (!m_arbiter.bank_idle(bank)) {
 			return false; /////return false here means stall
 		}
-#endif
 	}
-//////////////////Haonanedit
 
 	for (r = regs.begin(); r != regs.end(); r++, n++) {
 		unsigned reg = *r;
 		unsigned bank = register_bank(reg, inst.warp_id(), m_num_banks,
 				m_bank_warp_shift);
-
-///////////possible bug: If more than one regs are written,
-///////////when two regs are in the same bank for one instruction, it will stuck here forever!
-///////////When return false for different instructions, the already allocated one cannot be cancelled.
-///////////So when return false and write again in the next cycle, the same reg may write twice.
-///////////But by far not seen from any apps.
-
-#if RF_LAT == 0
-///////////////////////Haonanedit
 
 		if (m_arbiter.bank_idle(bank)) {
 			m_arbiter.allocate_bank_for_write(bank,
@@ -4799,17 +4707,7 @@ bool opndcoll_rfu_t::writeback(const warp_inst_t &inst) {
 		} else {
 			return false; ///return false here means that if one instruction wants to changes two registers from the same bank, it would stall forever!
 		}
-#else
-		if (!divergent) {
-			m_arbiter.allocate_bank_for_write(bank,
-					op_t(&inst, reg, m_num_banks, m_bank_warp_shift));
-		} else {
-			m_arbiter.allocate_bank_for_write_no_compression(bank,
-					op_t(&inst, reg, m_num_banks, m_bank_warp_shift));
-		}
-#endif
 	}
-///////////////////////Haonanedit
 
 	for (unsigned i = 0; i < (unsigned) regs.size(); i++) {
 		if (m_shader->get_config()->gpgpu_clock_gated_reg_file) {
@@ -4916,32 +4814,10 @@ void opndcoll_rfu_t::allocate_reads() {
 
 		op_t &op = r->second;
 
-#if RF_LAT == 1
-//////////////////Haonanedit
-		bool divergent = false;
-		for (unsigned i = 0; i < 32; i++) {
-			if (!op.get_warp()->active(i)) {
-				divergent = true;
-				break;
-			}
-		}
-//////////////////Haonanedit
-#endif
-
 		unsigned cu = op.get_oc_id();
 		unsigned operand = op.get_operand();
 
-//////////////////Haonanedit
-#if RF_LAT == 0
 		m_cu[cu]->collect_operand(operand);
-#else
-		if (!divergent) {
-			m_cu[cu]->collect_operand(operand);
-		} else {
-			m_cu[cu]->collect_operand_no_compression(operand);
-		}
-#endif
-//////////////////Haonanedit
 
 		if (m_shader->get_config()->gpgpu_clock_gated_reg_file) {
 			unsigned active_count = 0;
@@ -4991,13 +4867,6 @@ void opndcoll_rfu_t::collector_unit_t::init(unsigned n, unsigned num_banks,
 	assert(m_warp == NULL);
 	m_warp = new warp_inst_t(config);
 	m_bank_warp_shift = log2_warp_size;
-
-#if RF_LAT == 1
-////////////////////////////////////////////////myeditCompress
-	dc = new decompresser(*this);
-	dc->init(0);///////edit decompresser's latency here
-////////////////////////////////////////////////myeditCompress
-#endif
 }
 
 bool opndcoll_rfu_t::collector_unit_t::allocate(register_set* pipeline_reg_set,
@@ -5015,12 +4884,6 @@ bool opndcoll_rfu_t::collector_unit_t::allocate(register_set* pipeline_reg_set,
 			if (reg_num >= 0) { // valid register
 				m_src_op[op] = op_t(this, op, reg_num, m_num_banks,
 						m_bank_warp_shift);
-
-#if RF_LAT == 1
-				//////////////////////Haonan edit
-				m_src_op[op].set_warp(*pipeline_reg);
-				//////////////////////Haonan edit
-#endif
 
 				m_not_ready.set(op);
 			} else

@@ -56,16 +56,6 @@ public:
 	unsigned long long int addr;
 	unsigned int insertion_time;
 	class mem_fetch * data;
-
-	//////////////myedit AMC
-	unsigned int delay_time;
-	unsigned int is_echo;
-	unsigned int row_size;
-	unsigned int read_only;
-	unsigned int subpar1_exists;
-	unsigned int subpar2_exists;
-	unsigned int subpartition_id;
-	//////////////myedit AMC
 };
 
 struct bankgrp_t {
@@ -97,7 +87,7 @@ struct bank_t {
 
 struct mem_fetch;
 
-////////my editprofile
+////////myeditprofile
 extern double bwutil;
 extern double bwutil_global_read;
 extern double bwutil_global_write;
@@ -109,24 +99,13 @@ extern unsigned int n_pre;
 extern unsigned int n_rd;
 extern unsigned int n_wr;
 extern unsigned int n_req;
-////////my editprofile
+////////myeditprofile
 
-////////////myedit amc
+////////////myeditamc
 extern double temp_bwutil; //////////pf
 extern double temp_bwutil_global_read; //////////pf
 extern double temp_bwutil_global_write; //////////pf
-
-extern double act_bwutil;
-extern double act_bwutil_gread;
-extern double act_bwutil_gwrite;
-
-extern double req_bwutil;
-extern double req_bwutil_gread;
-extern double req_bwutil_gwrite;
-
-extern unsigned int act_cmd; ///////cycles in window
-extern unsigned int req_cmd; ///////cycles in window
-////////////myedit amc
+////////////myeditamc
 
 class dram_t {
 public:
@@ -155,11 +134,6 @@ public:
 	void set_dram_power_stats(unsigned &cmd, unsigned &activity, unsigned &nop,
 			unsigned &act, unsigned &pre, unsigned &rd, unsigned &wr,
 			unsigned &req) const;
-
-	////////////myedit amc
-	unsigned subchannel1_warmed_up;
-	unsigned subchannel2_warmed_up;
-	////////////myedit amc
 
 private:
 	void scheduler_fifo();
@@ -192,7 +166,7 @@ private:
 
 	unsigned int last_n_cmd, last_n_activity, last_bwutil;
 
-	////////my editprofile
+	////////myeditprofile
 	/*
 	 unsigned int n_cmd;
 	 unsigned int n_activity;
@@ -203,13 +177,15 @@ private:
 	 unsigned int n_wr;
 	 unsigned int n_req;
 	 */
-	////////my editprofile
+	////////myeditprofile
+
 	unsigned int max_mrqs_temp;
 
-	////////my editHW2
+	////////myeditHW2
 	//unsigned int bwutil;
 	//double bwutil;
-	////////my editHW2
+	////////myeditHW2
+
 	unsigned int max_mrqs;
 	unsigned int ave_mrqs;
 
@@ -231,18 +207,17 @@ private:
 	double temp_bwutil_partial;	//////////pf
 	double temp_bwutil_partial_gread;	//////////pf
 	double temp_bwutil_partial_gwrite;	//////////pf
-
-	double act_bwutil_partial;	//per DRAM
-	double act_bwutil_partial_gread;	//per DRAM
-	double act_bwutil_partial_gwrite;	//per DRAM
-
-	double req_bwutil_partial;	//per DRAM
-	double req_bwutil_partial_gread;	//per DRAM
-	double req_bwutil_partial_gwrite;	//per DRAM
-
-	unsigned int act_cmd_partial;	///////cycles in window
-	unsigned int req_cmd_partial;	///////cycles in window
 	////////////myedit amc
+
+	/////////////myedit bfloat
+	unsigned int approximated_req_count_partial; //per DRAM
+	unsigned int total_access_count_partial; //per DRAM
+	unsigned int approximated_req_count_temp_partial = 0; //per DRAM
+	unsigned int total_access_count_temp_partial = 0; //per DRAM
+
+	double threshold_bw_dynamic_partial;
+	double threshold_length_dynamic_partial;
+	/////////////myedit bfloat
 
 	struct memory_stats_t *m_stats;
 	class Stats* mrqq_Dist;	//memory request queue inside DRAM

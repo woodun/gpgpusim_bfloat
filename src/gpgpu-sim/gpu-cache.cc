@@ -28,10 +28,9 @@
 #include "gpu-cache.h"
 #include "stat-tool.h"
 
-///////////////////////my editCAA
-//#include "../cache_access_analysis.h"//declaration of inserted functions.
-#include "../approximate_memory_controller.h"
-///////////////////////my editCAA
+///////////////////////myeditbfloat
+#include "../cuda-sim/ptx_sim.h"
+///////////////////////myeditbfloat
 
 #include <assert.h>
 
@@ -271,162 +270,42 @@ enum cache_request_status tag_array::access(new_addr_type addr, unsigned time,
 	return status;
 }
 
-////////myedit AMC
-void tag_array::search_nearby_and_replace(mem_fetch *mf) {
+////////myedit bfloat
+void tag_array::truncate_float(mem_fetch *mf) { /////////////must make sure it is float
 
 	new_addr_type addr = mf->get_addr();
-
 	new_addr_type block_addr = m_config.block_addr(addr);
-
-	new_addr_type tag_addr = block_addr; ///////////tag is block address, not set + block address.
-	assert(tag_addr == m_config.tag(addr));
-
-	unsigned all_reserved = 1;
-
-	new_addr_type closest_address = 0;
-	new_addr_type closest_tag_distance = 400000000; ///////////tag is block address, not block - set address.
-
-	unsigned set_index = m_config.set_index(addr);
-
-	assert(2 * searching_radius - 1 <= m_config.m_nset); /////////////////////////////
-
-	//printf(
-	//		"############################start###########################################################################\n"); /////////////33 and more
-	//fflush (stdout);
-
-	//printf("##########debug:set_index:%u, searching_radius:%u, current_set:%d, upper_bound:%d\n",
-	//		set_index, searching_radius, current_set, upper_bound); /////////////23100000
-	//fflush(stdout);
-
-	for (int current_set = set_index - searching_radius + 1;
-			current_set <= (int) (set_index + searching_radius - 1);
-			current_set++) { ////////////////radius = 1 means only searching in the current set, radius = 2 means searching the surrounding 1.
-
-		int set_number = current_set;
-
-		//////////////mod
-		if (current_set < 0) {
-
-			set_number = current_set + m_config.m_nset;
-		} else if (current_set >= (int) m_config.m_nset) {
-
-			set_number = current_set - m_config.m_nset;
-		}
-
-		for (unsigned way = 0; way < m_config.m_assoc; way++) {
-			int index = set_number * m_config.m_assoc + way;
-			cache_block_t *line = &m_lines[index];
-
-			//printf(
-			//		"##########debug:set_number:%d, index:%d, line->m_status:%d\n",
-			//		set_number, index, line->m_status); /////////////33 and more
-			//fflush(stdout);
-
-			if (line->m_status == VALID || line->m_status == MODIFIED) {
-
-				if (abs(line->m_tag - tag_addr) < closest_tag_distance) {
-
-					closest_tag_distance = abs(line->m_tag - tag_addr);
-					closest_address = line->m_tag;
-				}
-
-				all_reserved = 0;
-			}
-		} ////////end of: for (unsigned way = 0; way < m_config.m_assoc; way++) {
-	}
-
-	//printf(
-	//		"############################end###########################################################################\n"); /////////////33 and more
-	//fflush(stdout);
-
-	/*//////////search in entire l2
-	 for (unsigned index = 0;
-	 index < MAX_DEFAULT_CACHE_SIZE_MULTIBLIER * config.get_num_lines();
-	 index++) {
-
-	 cache_block_t *line = &m_lines[index];
-
-	 if (line->m_status == VALID || line->m_status == MODIFIED) {
-
-	 if (abs(line->m_tag - tag_addr) < closest_tag_distance) {
-
-	 closest_tag_distance = abs(line->m_tag - tag_addr);
-	 closest_address = line->m_tag;
-	 }
-
-	 all_reserved = 0;
-	 }
-	 }
-	 *///////////search in entire l2
-	if (all_reserved) {
-		assert(0);
-	}
 
 	/////////////////////////////////////////////////////////////////////////////////////read from nearby address
 	mem_fetch *data = mf;
 	char * mydata = new char[data->get_data_size()];
 	new_addr_type address_limit;
 
-	address_limit = data->get_addr() + data->get_data_size();
+	address_limit = data->get_addr() + data->get_data_size(); //////////////myeditDSN
 
 	if (address_limit <= 0x100000000) {
 
-		if (!mf->is_approximated()) { //////////////from global
+		//////////////read from global space
+		((memory_space_impl<8 * 1024> *) global_memory)->read(
+				(block_addr >> 7) << 7, data->get_data_size(), mydata);
 
-			((memory_space_impl<8 * 1024> *) global_memory)->read(
-					(closest_address >> 7) << 7, data->get_data_size(), mydata);
-
-			//				((memory_space_impl<16 * 1024> *) global_memory)->read(
-			//(data->get_addr() >> 7) << 7, data->get_data_size(),
-			//mydata);
-
-		} else {		//////////////from cache space is it's also approximate
-
-			((memory_space_impl<8 * 1024> *) cache_memory)->read(
-					(closest_address >> 7) << 7, data->get_data_size(), mydata);
+		/////////////////////truncate the data (make sure it is little endian)
+		for(int i = 0; i < data->get_data_size(); i++){
+			if(i & 3 < 2 ){ ////////////////truncate the first two bytes
+				mydata[i] = 0;
+			}
 		}
+
+		//////////////write to cache space
+		((memory_space_impl<8 * 1024> *) cache_memory)->write_1(
+				(block_addr >> 7) << 7, data->get_data_size(), mydata);
 	} else {
 		printf("out of memory bound of 4gb\n");
 	}
 
-	///////////////////////////form the line with specified step size
-	/*
-	 char * buffer = mydata;
-	 unsigned size = data->get_data_size();
-	 unsigned step = 4;
-
-	 std::vector<unsigned> unsigned_values(32, 0);		////original container.
-
-	 for (unsigned i = 0; i < size; i += step) {
-	 for (unsigned j = 0; j < step; j++) {
-	 unsigned_values[i / step] += (unsigned) ((unsigned char) buffer[i
-	 + j]) << (8 * j);
-	 }
-	 }
-	 */
-
-	/////////////////////////////////////////////////////////////////////////////////////read from nearby address
-	/////////////////////////////////////////////////////////////////////////////////////read from nearby address
-	/*
-	 char * predicted_char = new char[data->get_data_size()];
-
-	 for (unsigned i = 0; i < size; i += step) {
-	 for (unsigned j = 0; j < step; j++) {
-	 predicted_char[i + j] =
-	 (unsigned char) ((unsigned) ((unsigned_values[i / step]
-	 >> (8 * j)) & 255));
-	 }
-	 }
-	 */
-
-	//////////////write to cache space
-	((memory_space_impl<8 * 1024> *) cache_memory)->write_1((addr >> 7) << 7,
-			data->get_data_size(), mydata);
-
 	delete[] mydata;
-	/////////////////////////////////////////////////////////////////////////////////////read from nearby address
 }
-////////myedit AMC
+////////myedit bfloat
 
 void tag_array::fill(new_addr_type addr, unsigned time, unsigned predicted) { ////////myedit AMC
 	assert(m_config.m_alloc_policy == ON_FILL);
@@ -552,19 +431,7 @@ void mshr_table::mark_ready(new_addr_type block_addr, bool &has_atomic,
 
 	assert(a != m_data.end()); // don't remove same request twice
 
-			////////////////////myedit AMC
-			//m_current_response.push_back(block_addr);
-	if (is_l2) {
-
-		m_current_response.push_back(
-				response_entry(block_addr, 2 * searching_radius - 2,
-						is_approximated));///////////////////////////////only l2 will search and delay
-	} else {
-		m_current_response.push_back(
-				response_entry(block_addr, 0, is_approximated));///////////////////////////////l1 will not search and delay
-	}
-	/////the original set is also searched, it is considered to have been included into the original delay already.
-	////////////////////myedit AMC
+	m_current_response.push_back(block_addr);
 
 	has_atomic = a->second.m_has_atomic;
 	assert(m_current_response.size() <= m_data.size());
@@ -574,11 +441,7 @@ void mshr_table::mark_ready(new_addr_type block_addr, bool &has_atomic,
 mem_fetch *mshr_table::next_access() {
 	assert(access_ready());
 
-	//////////////myedit AMC
-	/////new_addr_type block_addr = m_current_response.front();
-	response_entry response = m_current_response.front();
-	new_addr_type block_addr = response.response_addr;
-	//////////////myedit AMC
+	new_addr_type block_addr = m_current_response.front();
 
 	assert(!m_data[block_addr].m_list.empty());
 	mem_fetch *result = m_data[block_addr].m_list.front();
@@ -586,7 +449,7 @@ mem_fetch *mshr_table::next_access() {
 
 	//////////////myedit AMC
 	if (m_data[block_addr].is_approx) { ////////////do this before erase.
-		result->set_approx();
+		result->set_approx();  //////myeditDSN: set prediction status for each mf in the mshr_entry, using its is_approx field.
 	}
 	//////////////myedit AMC
 
@@ -598,16 +461,6 @@ mem_fetch *mshr_table::next_access() {
 
 	return result;
 }
-
-//////////////myedit AMC
-void mshr_table::replenish_approx_delay() { //////////////replenish every cycle
-
-	for (std::list<response_entry>::iterator it = m_current_response.begin();
-			it != m_current_response.end(); ++it) {
-		it->delay = it->delay - 1; /////////////for non approx as well, but non approx will not be checked.
-	}
-}
-//////////////myedit AMC
 
 void mshr_table::display(FILE *fp) const {
 	fprintf(fp, "MSHR contents\n");
@@ -873,15 +726,6 @@ void baseline_cache::bandwidth_management::use_fill_port(mem_fetch *mf) {
 	// assume filling the entire line with the returned request
 	unsigned fill_cycles = m_config.m_line_sz / m_config.m_data_port_width;
 	m_fill_port_occupied_cycles += fill_cycles;
-
-	/////////myedit amc
-	if (m_config.m_write_policy != LOCAL_WB_GLOBAL_WT && searching_radius > 0) {/////////////only l2 can search and block, l1 is using LOCAL_WB_GLOBAL_WT
-
-		if (mf->is_approximated()) {////////////only approximated mfs will cause additional delay
-			m_fill_port_occupied_cycles += 2 * searching_radius - 2;//////////////the original set is also searched, it is considered to have been included into the original delay already.
-		}
-	}
-	/////////myedit amc
 }
 
 /// called every cache cycle to free up the ports 
@@ -920,13 +764,6 @@ void baseline_cache::cycle() {
 	bool fill_port_busy = !m_bandwidth_management.fill_port_free();
 	m_stats.sample_cache_port_utility(data_port_busy, fill_port_busy);
 	m_bandwidth_management.replenish_port_bandwidth();
-
-	////////////myedit AMC
-	if (m_config.m_write_policy != LOCAL_WB_GLOBAL_WT && searching_radius > 0) {/////////////only l2 should replenish if searching, l1 is using LOCAL_WB_GLOBAL_WT
-
-		m_mshrs.replenish_approx_delay();/////////replenish approximate data's delay in response queue every cycle
-	}
-	////////////myedit AMC
 }
 
 /// Interface for response from lower memory level (model bandwidth restictions in caller)
@@ -937,31 +774,32 @@ void baseline_cache::fill(mem_fetch *mf, unsigned time) {
 	mf->set_data_size(e->second.m_data_size);
 
 	/////////////myedit AMC
+
 	if (!mf->is_approximated() || always_fill) {
 
 		if (m_config.m_alloc_policy == ON_MISS) {
 
 			if (m_config.m_write_policy != LOCAL_WB_GLOBAL_WT
-					&& mf->is_approximated() && searching_radius > 0) {	/////////////only l2 can search, l1 is using LOCAL_WB_GLOBAL_WT
+					&& mf->is_approximated() ) {	/////////////only l2 can search, l1 is using LOCAL_WB_GLOBAL_WT
 
 					//printf("##########debug:m_name:%s\n", m_name.c_str());/////////////debug
 					//fflush (stdout);
 
-				m_tag_array->search_nearby_and_replace(mf);	//////////////search happens before fill
+				m_tag_array->truncate_float(mf);	//////////////truncate happens before fill
 			}
 			m_tag_array->fill(e->second.m_cache_index, time,
-					mf->is_approximated());	////////myedit amc
+					mf->is_approximated());	////////myedit amc  ///////////myeditDSN: both l1 and l2 are marked correctly with prediction status.
 		} else if (m_config.m_alloc_policy == ON_FILL) {
 
 			if (m_config.m_write_policy != LOCAL_WB_GLOBAL_WT
-					&& mf->is_approximated() && searching_radius > 0) {	/////////////only l2 can search, l1 is using LOCAL_WB_GLOBAL_WT
+					&& mf->is_approximated() ) {	/////////////only l2 can search, l1 is using LOCAL_WB_GLOBAL_WT
 
 					//printf("##########debug:m_name:%s\n", m_name.c_str());/////////////debug
 					//fflush (stdout);
-				m_tag_array->search_nearby_and_replace(mf);
+				m_tag_array->truncate_float(mf);
 			}
 			m_tag_array->fill(e->second.m_block_addr, time,
-					mf->is_approximated());	////////myedit amc
+					mf->is_approximated());	////////myedit amc  ///////////myeditDSN: both l1 and l2 are marked correctly with prediction status.
 		} else {
 
 			abort();
@@ -973,13 +811,8 @@ void baseline_cache::fill(mem_fetch *mf, unsigned time) {
 
 	bool has_atomic = false;
 
-	if (m_config.m_write_policy != LOCAL_WB_GLOBAL_WT) {/////////////only l2 should delay
-		m_mshrs.mark_ready(e->second.m_block_addr, has_atomic,
-				mf->is_approximated(), 1);///////////myquestion: are all writes atomic? so that after read fill of write miss, MODIFIED can be correctly set? Highly probably NO.
-	} else {	/////////////l1 should not delay
-		m_mshrs.mark_ready(e->second.m_block_addr, has_atomic,
-				mf->is_approximated(), 0);
-	}
+	/////////////myedit bfloat: should not delay
+	m_mshrs.mark_ready(e->second.m_block_addr, has_atomic, mf->is_approximated(), 0);
 	/////////////myedit AMC
 
 	if (has_atomic) {
@@ -1040,12 +873,6 @@ void baseline_cache::send_read_request(new_addr_type addr,
 			m_tag_array->access(block_addr, time, cache_index);
 		else
 			m_tag_array->access(block_addr, time, cache_index, wb, evicted);
-
-		///////////////debug
-		/////////////only miss and hit reserved will use mshr, hit and reservation fail cannot get in here.
-		/////////////but we already know it's been sent before if it's a hit reserved, so what's the use of mshr?
-		/////////////I think it's useless when allocate on-miss, but if it's on-fill, then there's no 'hit reserved', so we need mshr to block same request.
-		///////////////debug
 
 		m_mshrs.add(block_addr, mf);
 		do_miss = true;
@@ -1110,7 +937,8 @@ cache_request_status data_cache::wr_hit_wt(new_addr_type addr,
 	m_tag_array->access(block_addr, time, cache_index); // update LRU state
 	cache_block_t &block = m_tag_array->get_block(cache_index);
 	block.m_status = MODIFIED;
-	block.is_predicted = 0; /////////myedit amc
+	//block.is_predicted = 0; /////////myedit amc //////////////myeditDSN: write shall not change the prediction status,
+	//////////////////because there might be unchanged parts which still remain their status. we write to both cache and global space and use one of them accordingly.
 
 	// generate a write-through
 	send_write_request(mf, WRITE_REQUEST_SENT, time, events);
@@ -1159,8 +987,8 @@ enum cache_request_status data_cache::wr_hit_global_we_local_wb(
 /// Write-allocate miss: Send write request to lower level memory
 // and send a read request for the same block
 enum cache_request_status data_cache::wr_miss_wa(new_addr_type addr, //////////for wa, writethrough should send a write, a read, and a MODIFIED(optional), with no wb.
-		unsigned cache_index, mem_fetch *mf, unsigned time, ///////////////////bug:writeback should send no-write(error), a read, a MODIFIED(error),with wb(optional).
-		std::list<cache_event> &events, enum cache_request_status status) {
+		unsigned cache_index, mem_fetch *mf, unsigned time, ///////////bug:writeback should send no-write(error), a read, a MODIFIED(error),with wb(optional).
+		std::list<cache_event> &events, enum cache_request_status status) { //////////////myeditDSN: probably write-miss policies and write-hit policies are different things.
 	new_addr_type block_addr = m_config.block_addr(addr);
 
 	// Write allocate, maximum 3 requests (write miss, read request, write back request)
@@ -1173,8 +1001,10 @@ enum cache_request_status data_cache::wr_miss_wa(new_addr_type addr, //////////f
 							&& (m_miss_queue.size() < m_config.m_miss_queue_size))))
 		return RESERVATION_FAIL;
 
-	send_write_request(mf, WRITE_REQUEST_SENT, time, events);///////////////////serious bug////////////myquestion:how come write-back cache send this?!???
-	//////////////////////////////(Perhaps this is why professor Jog says he only trust the read part of gpgpusim. However writes will also affect reads.)
+	send_write_request(mf, WRITE_REQUEST_SENT, time, events);////myquestion:how come write-back cache send this?
+	///////////////////////////////answer: write hit policies and write miss policies are different. //////////////myeditDSN
+	////////////////////on write miss it first send off the write to lower level of memory (instead of jamming the cache), then read the entire cache line back to the reserved block.
+
 	// Tries to send write allocate request, returns true on success and false on failure
 	//if(!send_write_allocate(mf, addr, block_addr, cache_index, time, events))
 	//    return RESERVATION_FAIL;
@@ -1194,16 +1024,48 @@ enum cache_request_status data_cache::wr_miss_wa(new_addr_type addr, //////////f
 	cache_block_t evicted;
 
 	// Send read request resulting from write miss
-	send_read_request(addr, block_addr, cache_index, n_mf, time, do_miss, wb,
-			evicted, events, false, true); //////////bug: a write would change the status to be MODIFIED after this read fills, however it doesn't.
+	send_read_request(addr, block_addr, cache_index, n_mf, time, do_miss, wb, ///myeditDSN: it is first written to lower level of memory, and read back from it. Not modified after that.
+			evicted, events, false, true); /////bug: a write would change the status to be MODIFIED after this read fills, however it doesn't.
 
 	if (do_miss) {
 		// If evicted block is modified and not a write-through (a write-through already modified lower level)
-		if (wb && (m_config.m_write_policy != WRITE_THROUGH)) { ///////////////myquestion:how about write evict? can it use either of wb or wt?
+		if (wb && (m_config.m_write_policy != WRITE_THROUGH)) { /////myquestion:how about write evict? can it use either of wb or wt? /////myeditDSN: not relevant. see answers above.
 			mem_fetch *wb = m_memfetch_creator->alloc(evicted.m_block_addr,
 					m_wrbk_type, m_config.get_line_sz(), true);
-			m_miss_queue.push_back(wb);	////////////myquestion:will write miss's read fill mark modified? why do not events.push_back(request); ?
+			m_miss_queue.push_back(wb);	////////myquestion:will write miss's read fill mark modified? why do not events.push_back(request); ? /////myeditDSN: see answer above.
 			wb->set_status(m_miss_queue_status, time);
+
+			////////////myeditDSN
+			////////////////////////////////here we only cover the l2 to dram case, because l1 is using we. (we only need to fix l1 if l1 uses wb)
+			/////////////myedit bfloat: think carefully, when write back to the dram, do you write the whole thing or just write the bfloat (also just store the bfloat part of the st operation in cache)?
+
+			if(m_config.m_write_policy != LOCAL_WB_GLOBAL_WT
+					&& evicted.is_predicted == 1){ ////////////////////only l2 need to do the copy from cache space to global space
+
+				/////////////////////////////read from cache space
+				mem_fetch *data = wb;
+				char * mydata = new char[data->get_data_size()];
+				new_addr_type address_limit;
+
+				address_limit = data->get_addr() + data->get_data_size();
+
+				if (address_limit <= 0x100000000) {
+					/////////////////////////////read from cache space
+					((memory_space_impl<8 * 1024> *) cache_memory)->read(
+								(data->get_addr() >> 7) << 7, data->get_data_size(), mydata);
+
+					/////////////////////////////write to global space
+					((memory_space_impl<8 * 1024> *) global_memory)->write_1(
+							(data->get_addr() >> 7) << 7, data->get_data_size(), mydata);
+
+				} else {
+					printf("out of memory bound of 4gb\n");
+				}
+
+				delete[] mydata;
+				/////////////////////////////write to global space
+			}
+			////////////myeditDSN
 		}
 		return MISS;
 	}
@@ -1269,6 +1131,37 @@ enum cache_request_status data_cache::rd_miss_base(new_addr_type addr,
 			mem_fetch *wb = m_memfetch_creator->alloc(evicted.m_block_addr,
 					m_wrbk_type, m_config.get_line_sz(), true);
 			send_write_request(wb, WRITE_BACK_REQUEST_SENT, time, events);
+
+			////////////myeditDSN
+			////////////////////////////////here we only cover the l2 to dram case, because l1 is using we. (we only need to fix l1 if l1 uses wb)
+
+			if(m_config.m_write_policy != LOCAL_WB_GLOBAL_WT
+					&& evicted.is_predicted == 1){ ////////////////////only l2 need to do the copy from cache space to global space
+
+				/////////////////////////////read from cache space
+				mem_fetch *data = wb;
+				char * mydata = new char[data->get_data_size()];
+				new_addr_type address_limit;
+
+				address_limit = data->get_addr() + data->get_data_size();
+
+				if (address_limit <= 0x100000000) {
+					/////////////////////////////read from cache space
+					((memory_space_impl<8 * 1024> *) cache_memory)->read(
+								(data->get_addr() >> 7) << 7, data->get_data_size(), mydata);
+
+					/////////////////////////////write to global space
+					((memory_space_impl<8 * 1024> *) global_memory)->write_1(
+							(data->get_addr() >> 7) << 7, data->get_data_size(), mydata);
+
+				} else {
+					printf("out of memory bound of 4gb\n");
+				}
+
+				delete[] mydata;
+				/////////////////////////////write to global space
+			}
+			////////////myeditDSN
 		}
 		return MISS;
 	}
@@ -1412,8 +1305,6 @@ void tag_array::allocate_and_fill_prediction(unsigned index, unsigned time,
 unsigned tag_array::is_predicted(unsigned index) {
 	return m_lines[index].is_predicted;
 }
-
-//#include "../cuda-sim/ptx_sim.h"
 //////////////myeditpredictor
 
 /// This is meant to model the first level data cache in Fermi.
@@ -1422,7 +1313,95 @@ unsigned tag_array::is_predicted(unsigned index) {
 /// (the policy used in fermi according to the CUDA manual)
 enum cache_request_status l1_cache::access(new_addr_type addr, mem_fetch *mf,
 		unsigned time, std::list<cache_event> &events) {
-	return data_cache::access(addr, mf, time, events);
+
+	//////////////myeditDSN: process l1 hit approx
+	/////note: which space to write to for writes: wb: first write to cache space, then global space; wt: write to both cache space and global space; we: write to global space directly.
+	////////places to change for write: write op (for read after write) & memory writes (for eviction policies)
+	////////write op: write to both cache and global; L2 writeback: predicted: write from cache to global, accurate: do not write from cache to global.
+	////////check: is is_predicted correctly set when read?
+	///////can we prevent approximate data from being written to the memory? we, wt could, wb has to change accurate to approx in global space.
+	/////is there read for cache write-misses for we, wt or wb? if so, do they have to write to lower levels in 128 bytes chunks?
+	/////what is the write mf size? decided by memory_coalescing_arch_13_reduce_and_send(, 64 or 128.
+	/////but since no read is done before write when write miss, actually the size should be the size of the changed part.
+	////////////what does write hit reserved do? write request itself never get registered in the MSHR or reserve any cache block. so the reserved block hit is allocated for the read.
+	/////it is treated indifferently as write miss (send write directly). therefore, it is not clear what will happen if the read reply is already on its way back when sending the write.
+	/////key: check when write hit or when write miss evict, if the whole chunk is brought down or not.
+	/////so wb has to write the entire chunk. we and wt's send_write_request(, if can only send the changed, then sending the whole chunk can be avoided.
+	//////////////todo: 1. do nothing for write miss. ##ok 2. in write op write to both cache and global space. ##ok 3. do nothing for wt, we. ##ok
+	////////////////////4. copy from cache space to global space for wb evicted modified in L2. ##ok 5. make sure read low and write low (not needed if l1 uses we) change approx mark. ##ok
+	////////////////////6. re-execute for l1 hit-approx. ##ok
+	///////////ps: for downstream propagation, since L1 is we, we only need to copy from cache space to global space for approx evicted-write.
+	///////////////for upstream propagation, check if l1 and l2's marks are set correctly.
+	///////////The only case when a full cache line is written,
+	///////////is when a modified cache line is evicted under the write back policy (produced only by write hits, write misses do not produce Modified).
+	///////////Fortunately, l1 is not wb. If l1 uses wb, for the case of the generated write-back writes from l1, l2 has to mark their prediction status and
+	///////////copy from cache space to global space if l2 also sends them to the dram.
+	//////////////myedit bfloat: (when write approximate cache line back to dram, bfloat seems to be similar as lmc)
+
+	enum cache_request_status access_status = data_cache::access(addr, mf, time, events);
+
+	if (access_status == HIT && !mf->get_is_write()
+								&& mf->get_access_type() == GLOBAL_ACC_R
+								&& !mf->is_access_atomic()) { //////////hit a predicted data, then redo the load with data from cache space
+
+		//////////get cache_index
+		new_addr_type block_addr = m_config.block_addr(addr);
+		unsigned cache_index = (unsigned) -1;
+
+		enum cache_request_status probe_status = m_tag_array->probe(
+				block_addr, cache_index);
+		//////////get cache_index
+
+		if (m_tag_array->is_predicted(cache_index) == 1) {
+
+			if (redo_in_l1) {
+				actual_redo++;
+
+				unsigned is_ld = 1;
+				for (unsigned t = 0; t < 32; t++) {
+
+					unsigned data_starting_index_of_thread_in_line =
+							(mf->get_access_thread_correspondance())[t]; /////data starting indices that belong to this line and belong to this warp
+
+					if (data_starting_index_of_thread_in_line > 0) {
+						if ( mf->get_inst().active(t) ) { ////////////which threads are requesting this line? must redo accordingly.
+
+							unsigned tid = 32 * ( mf->get_inst().warp_id() ) + t; ////////////////////myquestion:is tid local to the CTA?
+							is_ld = m_core->m_thread[tid]->ptx_is_ld_at_pc( mf->get_pc() ); ///////////////only if this instruction is ld that it can be used to approximate
+
+							if (is_ld == 0) {
+								break;
+							}
+						} /////end of: if (mf->get_inst().active(thread_of_warp_in_line - 1))
+					} /////end of: if (thread_of_warp_in_line > 0)
+				} /////end of: for (unsigned t = 0; t < 32; t++)
+
+				if (is_ld == 1) {
+
+					for (unsigned t = 0; t < 32; t++) {
+
+						unsigned data_starting_index_of_thread_in_line = /////data indices that belong to this line and belong to this warp
+								(mf->get_access_thread_correspondance())[t];
+
+						if (data_starting_index_of_thread_in_line > 0) { ///////////0 means null, and the real id is: thread_of_warp_in_line - 1
+
+							if ( mf->get_inst().active(t) ) { ////////////which threads are requesting this line? must redo accordingly. input range (0 - 31).
+
+								unsigned tid = 32 * ( mf->get_inst().warp_id() ) + t; ////////////////////myquestion:is tid local to the CTA?
+								m_core->m_thread[tid]->ptx_exec_ld_at_pc( mf->get_pc() ); /////redo load
+
+							} ////////////end of: if (mf->get_inst().active(thread_of_warp_in_line - 1))
+						} ////////end of: if (thread_of_warp_in_line > 0)
+					} ////////end of: for (unsigned t = 0; t < 32; t++)
+				} //////end of: if (is_ld == 1)
+			}/////////end of: if (redo_in_l1) {
+
+		} /////end of: if (m_tag_array->is_predicted(cache_index) == 1) {
+	}/////end of: if (access_status == HIT && !mf->get_is_write() && mf->get_access_type() == GLOBAL_ACC_R && !mf->is_access_atomic()) {
+
+	return access_status;
+	//return data_cache::access(addr, mf, time, events);
+	//////////////myeditDSN: process l1 hit approx
 }
 
 // The l2 cache access function calls the base data_cache access
@@ -1430,7 +1409,30 @@ enum cache_request_status l1_cache::access(new_addr_type addr, mem_fetch *mf,
 // changes should be made here.
 enum cache_request_status l2_cache::access(new_addr_type addr, mem_fetch *mf,
 		unsigned time, std::list<cache_event> &events) {
-	return data_cache::access(addr, mf, time, events);
+
+	//////////////myeditDSN: process l2 hit approx
+	enum cache_request_status access_status = data_cache::access(addr, mf, time, events);
+
+	if (access_status == HIT && !mf->get_is_write()
+								&& mf->get_access_type() == GLOBAL_ACC_R
+								&& !mf->is_access_atomic()) { //////////hit a predicted data, then redo the load with data from cache space
+
+		//////////get cache_index
+		new_addr_type block_addr = m_config.block_addr(addr);
+		unsigned cache_index = (unsigned) -1;
+
+		enum cache_request_status probe_status = m_tag_array->probe(
+				block_addr, cache_index);
+		//////////get cache_index
+
+		if (m_tag_array->is_predicted(cache_index) == 1) {
+			mf->set_approx(); //////////this mf is what will be pushed back to the l2_inct_queue.
+		}
+	}
+
+	return access_status;
+	//return data_cache::access(addr, mf, time, events);
+	//////////////myeditDSN: process l2 hit approx
 }
 
 /// Access function for tex_cache

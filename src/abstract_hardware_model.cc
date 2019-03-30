@@ -89,10 +89,10 @@ void gpgpu_functional_sim_config::ptx_set_tex_cache_linesize(unsigned linesize)
    m_texcache_linesize = linesize;
 }
 
-////////////////my editCAA
+////////////////myeditCAA
 unsigned char *global_memory = NULL;
 unsigned char *cache_memory = NULL;
- ////////////////my editCAA
+ ////////////////myeditCAA
 
 gpgpu_t::gpgpu_t( const gpgpu_functional_sim_config &config )
     : m_function_model_config(config)
@@ -101,12 +101,12 @@ gpgpu_t::gpgpu_t( const gpgpu_functional_sim_config &config )
    m_tex_mem = new memory_space_impl<8192>("tex",64*1024);
    m_surf_mem = new memory_space_impl<8192>("surf",64*1024);
 
-   ////////////////my editCAA
+   ////////////////myeditCAA
    m_cache_mem = new memory_space_impl<8192>("cache",64*1024);
 
    global_memory = (unsigned char*)(m_global_mem);
    cache_memory = (unsigned char*)(m_cache_mem);
-    ////////////////my editCAA
+    ////////////////myeditCAA
 
    m_dev_malloc=GLOBAL_HEAP_START; 
 
@@ -422,7 +422,11 @@ void warp_inst_t::memory_coalescing_arch_13( bool is_write, mem_access_type acce
                     info.bytes.set(idx+i);
 
                 ////////////////////////////myedit prediction
-                info.thread_correspondance[idx/4] = thread + 1;//1 to 32, 0 means not set.
+                info.thread_correspondance[thread] = idx + 1;//1 to 128, 0 means not set. //////////////myeditDSN
+                //info.thread_correspondance[idx/4] = thread + 1;//1 to 32, 0 means not set. //////////////myeditDSN error if multiple threads access the same data.
+                ////////////////////need only to record which thread is involved if address (idx offset) is not used (can get from ptx_exec_ld_at_pc somehow?).
+                ///////////and access addresses generated here are not even need for re-exection, because execute_warp_inst_t(inst); even happens before inst.generate_mem_accesses();.
+                //////just need bitset for thread ids per block.
                 ////////////////////////////myedit prediction
             }
         }
@@ -595,10 +599,6 @@ void warp_inst_t::completed( unsigned long long cycle ) const
 
 unsigned kernel_info_t::m_next_uid = 1;
 
-/////////////////////my editdebug
-//extern std::FILE * debug1;
-/////////////////////my editdebug
-
 kernel_info_t::kernel_info_t( dim3 gridDim, dim3 blockDim, class function_info *entry )
 {
     m_kernel_entry=entry;
@@ -611,12 +611,6 @@ kernel_info_t::kernel_info_t( dim3 gridDim, dim3 blockDim, class function_info *
     m_num_cores_running=0;
     m_uid = m_next_uid++;
     m_param_mem = new memory_space_impl<8192>("param",64*1024);
-
-    /////////////////////my editdebug
-    //std::fprintf(debug1,"m_block_dim, x:%d, y:%d, z:%d. gridDim, x:%d, y:%d, z:%d\n",
- 	//		  m_block_dim.x, m_block_dim.y, m_block_dim.z,
- 	//		  gridDim.x, gridDim.y, gridDim.z);
-    /////////////////////my editdebug
 }
 
 kernel_info_t::~kernel_info_t()

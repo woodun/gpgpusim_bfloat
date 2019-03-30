@@ -1328,10 +1328,6 @@ static unsigned get_tex_datasize(const ptx_instruction *pI,
 	return data_size;
 }
 
-/////////////////////my editdebug
-//std::FILE * debug1 = std::fopen("/home/scratch/hwang/debug.txt", "w");
-/////////////////////my editdebug
-
 void ptx_thread_info::ptx_exec_inst(warp_inst_t &inst, unsigned lane_id) {
 
 	bool skip = false;
@@ -1341,12 +1337,6 @@ void ptx_thread_info::ptx_exec_inst(warp_inst_t &inst, unsigned lane_id) {
 	const ptx_instruction *pI = m_func_info->get_instruction(pc);
 	set_npc(pc + pI->inst_size());
 
-	/////////////////////my editdebug
-	/*if(get_hw_sid() == 0 && get_hw_wid() ==0 && get_hw_tid() ==0 && pc == 9336) {
-	 std::fprintf(debug1,"PC:9336, opcode_index:%d, op:%s\n",
-	 pI->get_opcode(), pI->get_opcode_cstr());
-	 }*/
-	/////////////////////my editdebug
 	try {
 
 		clearRPC();
@@ -1551,7 +1541,7 @@ void ptx_thread_info::ptx_exec_inst(warp_inst_t &inst, unsigned lane_id) {
 	}
 }
 
-//////////////myedit predictor
+//////////////myeditpredictor
 unsigned get_operand_nbits_1(const operand_info &op) {
 	if (op.is_reg()) {
 		const symbol *sym = op.get_symbol();
@@ -1705,7 +1695,7 @@ void ptx_thread_info::ptx_exec_ld_at_pc(addr_t pc_from_mf) {
 		abort();
 	}
 }
-//////////////myedit predictor
+//////////////myeditpredictor
 
 void set_param_gpgpu_num_shaders(int num_shaders) {
 	gpgpu_param_num_shaders = num_shaders;
@@ -2079,9 +2069,6 @@ ptx_cta_info *g_func_cta_info = NULL;
  which holds the data for the CUDA kernel to be executed
  !*/
 
-////////////////my editCAA
-//#include "cache_access_analysis.h"//declaration of inserted functions.
-////////////////my editCAA
 void gpgpu_cuda_ptx_sim_main_func(kernel_info_t &kernel, bool openCL) {
 	printf(
 			"GPGPU-Sim: Performing Functional Simulation, executing kernel %s...\n",
@@ -2134,12 +2121,6 @@ void gpgpu_cuda_ptx_sim_main_func(kernel_info_t &kernel, bool openCL) {
 	printf("gpgpu_simulation_rate = %u (inst/sec)\n",
 			(unsigned) (g_ptx_sim_num_insn / elapsed_time));
 	fflush (stdout);
-
-////////////////my editCAA
-//print_overall();
-
-//close_file();
-////////////////my editCAA
 }
 
 void functionalCoreSim::initializeCTA() {

@@ -103,10 +103,11 @@ class memory_space
 {
 public:
    virtual ~memory_space() {}
-   //////////////////myedit predictor
+
+   //////////////////myeditpredictor
    virtual void write_1( mem_addr_t addr, size_t length, const void *data) = 0;
    virtual void clear() = 0;
-   //////////////////myedit predictor
+   //////////////////myeditpredictor
 
    virtual void write( mem_addr_t addr, size_t length, const void *data, ptx_thread_info *thd, const ptx_instruction *pI ) = 0;
    virtual void read( mem_addr_t addr, size_t length, void *data ) const = 0;
@@ -117,10 +118,11 @@ public:
 template<unsigned BSIZE> class memory_space_impl : public memory_space {
 public:
    memory_space_impl( std::string name, unsigned hash_size );
-   //////////////////myedit predictor
+
+   //////////////////myeditpredictor
    virtual void write_1( mem_addr_t addr, size_t length, const void *data);
    virtual void clear();
-   //////////////////myedit predictor
+   //////////////////myeditpredictor
 
    virtual void write( mem_addr_t addr, size_t length, const void *data, ptx_thread_info *thd, const ptx_instruction *pI );
    virtual void read( mem_addr_t addr, size_t length, void *data ) const;

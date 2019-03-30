@@ -1019,7 +1019,6 @@ public:
 		////////////////////////////myedit prediction
 		transaction_info() {
 			thread_correspondance = std::vector<unsigned>(32, 0);
-			;
 		}
 
 		std::vector<unsigned> thread_correspondance;
@@ -1125,9 +1124,9 @@ public:
 		return m_uid;
 	}
 
-	/////////////////////////////my editHW3
+	/////////////////////////////myeditHW3
 	unsigned scheduler_index;
-	/////////////////////////////my editHW3
+	/////////////////////////////myeditHW3
 
 protected:
 

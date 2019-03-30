@@ -80,15 +80,15 @@ bool g_interactive_debugger_enabled = false;
 unsigned long long gpu_sim_cycle = 0;
 unsigned long long gpu_tot_sim_cycle = 0;
 
-////////////////////my editpredictor
+////////////////////myeditpredictor
 unsigned long long gpu_tot_sim_insn;
 unsigned long long gpu_sim_insn;
-////////////////////my editpredictor
+////////////////////myeditpredictor
 
-/////////////myedit amc
+/////////////myeditamc
 unsigned long long temp_gpu_sim_insn;
 unsigned long long temp_gpu_sim_cycle = 0;
-/////////////myedit amc
+/////////////myeditamc
 
 // performance counter for stalls due to congestion.
 unsigned int gpu_stall_dramfull = 0;
@@ -962,27 +962,15 @@ void gpgpu_sim::clear_executed_kernel_info() {
 	m_executed_kernel_uids.clear();
 }
 
-////////////////my editCAA
+////////////////myeditCAA
 unsigned kernel_index;
-////////////////my editCAA
+////////////////myeditCAA
 
 void gpgpu_sim::gpu_print_stat() {
 
-	//////////////myedit AMC
-	printf(
-			"########################################################AMC RESULTS START#################################################\n");
-	fflush(stdout);
-
-
-	//////////////myedit AMC
+	//////////////myeditAMC
 	kernel_index++;
-	print_amc();
-	//////////////myedit AMC
-
-	printf(
-			"########################################################AMC RESULTS OVER#################################################\n\n");
-	fflush(stdout);
-	//////////////myedit AMC
+	//////////////myeditAMC
 
 	FILE *statfout = stdout;
 

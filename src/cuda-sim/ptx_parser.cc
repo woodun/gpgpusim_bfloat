@@ -263,16 +263,6 @@ const ptx_instruction *ptx_instruction_lookup(const char *filename,
 void add_instruction() {
 	PTX_PARSE_DPRINTF(
 			"add_instruction: %s", ((g_opcode>0)?g_opcode_string[g_opcode]:"<label>"));
-	//////////my editproblem: should be: (g_opcode>-1)?
-	//const char *get_opcode_cstr() const
-	//{
-	//   if ( m_opcode != -1 ) {
-	//      return g_opcode_string[m_opcode];
-	//   } else {
-	//      return "label";
-	//   }
-	//}
-	//////////my editproblem
 
 	assert(g_shader_core_config != 0);
 	ptx_instruction *i = new ptx_instruction(g_opcode, g_pred, g_neg_pred,

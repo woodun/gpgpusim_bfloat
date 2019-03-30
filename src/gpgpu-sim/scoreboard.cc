@@ -39,44 +39,8 @@ Scoreboard::Scoreboard(unsigned sid, unsigned n_warps) :
 	longopregs.resize(n_warps);
 }
 
-///////////////////////////////////////////////////////////////////////////////myeditCompress
-
-void Scoreboard::init_latency(int latency) {
-	release_latency = latency;
-	release_pipeline.resize(3 * (release_latency + 1));
-
-	for (int i = release_pipeline.size() - 1; i >= 0; i--) {
-		release_pipeline[i] = finished_inst();
-	}
-}
-
-void Scoreboard::scoreboard_step() {
-	for (unsigned i = 0; i < release_pipeline.size(); i++) {
-		if (release_pipeline[i].latency == 0) {
-			release_pipeline[i].latency = -1;
-
-			for (unsigned r = 0; r < 4; r++) {
-				if (release_pipeline[i].out_release[r] > 0) {
-					SHADER_DPRINTF( SCOREBOARD,
-							"Register Released - warp:%d, reg: %d\n", release_pipeline[i].warp_id, release_pipeline[i].out_release[r]);
-					releaseRegister(release_pipeline[i].warp_id,
-							release_pipeline[i].out_release[r]);
-					longopregs[release_pipeline[i].warp_id].erase(
-							release_pipeline[i].out_release[r]);
-				}
-			}
-		}
-
-		if (release_pipeline[i].latency > 0) {
-			release_pipeline[i].latency = release_pipeline[i].latency - 1;
-		}
-	}
-}
-///////////////////////////////////////////////////////////////////////////////myeditCompress
-
 // Release registers for an instruction
 void Scoreboard::releaseRegisters(const class warp_inst_t *inst) {
-#if RF_LAT == 0
 	for (unsigned r = 0; r < 4; r++) {
 		if (inst->out[r] > 0) {
 			SHADER_DPRINTF( SCOREBOARD,
@@ -85,57 +49,6 @@ void Scoreboard::releaseRegisters(const class warp_inst_t *inst) {
 			longopregs[inst->warp_id()].erase(inst->out[r]);
 		}
 	}
-#else
-	////////////////Haonanedit
-	/*
-	 ///////////////////////////////////////////////////////////////////////////////myeditCompress
-	 for (unsigned i = 0; i < release_pipeline.size(); i++) {
-	 if (release_pipeline[i].latency == -1) {
-	 release_pipeline[i].latency = release_latency;
-	 for (unsigned r = 0; r < 4; r++) {
-	 release_pipeline[i].out_release[r] = inst->out[r];
-	 }
-	 release_pipeline[i].warp_id = inst->warp_id();
-	 return;
-	 }
-	 }
-
-	 assert(0 && "release pipeline full");
-	 ///////////////////////////////////////////////////////////////////////////////myeditCompress
-	 */
-
-	bool divergent = false;
-	for (unsigned i = 0; i < 32; i++) {
-		if (!inst->active(i)) {
-			divergent = true;
-			break;
-		}
-	}
-
-	if (!divergent) {
-		for (unsigned i = 0; i < release_pipeline.size(); i++) {
-			if (release_pipeline[i].latency == -1) {
-				release_pipeline[i].latency = release_latency;
-				for (unsigned r = 0; r < 4; r++) {
-					release_pipeline[i].out_release[r] = inst->out[r];
-				}
-				release_pipeline[i].warp_id = inst->warp_id();
-				return;
-			}
-		}
-		assert(0 && "release pipeline full");
-	} else {
-		for (unsigned r = 0; r < 4; r++) {
-			if (inst->out[r] > 0) {
-				SHADER_DPRINTF( SCOREBOARD,
-						"Register Released - warp:%d, reg: %d\n", inst->warp_id(), inst->out[r]);
-				releaseRegister(inst->warp_id(), inst->out[r]);
-				longopregs[inst->warp_id()].erase(inst->out[r]);
-			}
-		}
-	}
-	////////////////Haonanedit
-#endif
 }
 
 // Print scoreboard contents

@@ -34,10 +34,6 @@
 #ifndef SCOREBOARD_H_
 #define SCOREBOARD_H_
 
-/////////////////////myeditcontroller
-#define RF_LAT 0
-/////////////////////myeditcontroller
-
 #include "../abstract_hardware_model.h"
 
 class Scoreboard {
@@ -53,20 +49,6 @@ public:
 	void printContents() const;
 	const bool islongop(unsigned warp_id, unsigned regnum);
 
-	///////////////////////////////////////////////////////////////////////////////myeditCompress
-	struct finished_inst { //for collector decompresser read
-		finished_inst() :
-				latency(-1) {
-		}
-
-		int latency;
-		unsigned out_release[4];
-		unsigned warp_id;
-	};
-
-	void init_latency(int latency);
-	void scoreboard_step();
-	///////////////////////////////////////////////////////////////////////////////myeditCompress
 private:
 	void reserveRegister(unsigned wid, unsigned regnum);
 	int get_sid() const {
@@ -74,10 +56,6 @@ private:
 	}
 
 	unsigned m_sid;
-	///////////////////////////////////////////////////////////////////////////////myeditCompress
-	std::vector<finished_inst> release_pipeline;
-	int release_latency;
-	///////////////////////////////////////////////////////////////////////////////myeditCompress
 
 	// keeps track of pending writes to registers
 	// indexed by warp id, reg_id => pending write count

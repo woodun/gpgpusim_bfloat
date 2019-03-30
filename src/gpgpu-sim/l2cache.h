@@ -31,10 +31,6 @@
 #include "dram.h"
 #include "../abstract_hardware_model.h"
 
-////////////myedit AMC
-#include "../approximate_memory_controller.h"
-////////////myedit AMC
-
 #include <list>
 #include <queue>
 
@@ -95,16 +91,6 @@ public:
    int global_sub_partition_id_to_local_id(int global_sub_partition_id) const; 
 
    unsigned get_mpid() const { return m_id; }
-
-   ////////////myedit amc
-   void set_sub_partition1(){
-	   m_dram->subchannel1_warmed_up = 1;
-   }
-
-   void set_sub_partition2(){
-	   m_dram->subchannel2_warmed_up = 1;
-   }
-   ////////////myedit amc
 
 private: 
 
