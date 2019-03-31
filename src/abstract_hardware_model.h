@@ -1124,10 +1124,6 @@ public:
 		return m_uid;
 	}
 
-	/////////////////////////////myeditHW3
-	unsigned scheduler_index;
-	/////////////////////////////myeditHW3
-
 protected:
 
 	unsigned m_uid;

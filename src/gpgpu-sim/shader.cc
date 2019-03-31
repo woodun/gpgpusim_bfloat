@@ -785,11 +785,6 @@ void shader_core_ctx::issue_warp(register_set& pipe_reg_set,
 	m_warp[warp_id].ibuffer_free();
 	assert(next_inst->valid());
 	**pipe_reg = *next_inst; // static instruction information
-
-	/////////////////////////myeditHW3
-	(*pipe_reg)->scheduler_index = current_scheduler;
-	/////////////////////////myeditHW3
-
 	(*pipe_reg)->issue(active_mask, warp_id, gpu_tot_sim_cycle + gpu_sim_cycle,
 			m_warp[warp_id].get_dynamic_warp_id()); // dynamic instruction information
 	m_stats->shader_cycle_distro[2 + (*pipe_reg)->active_count()]++;
@@ -815,11 +810,6 @@ void shader_core_ctx::issue_warp(register_set& pipe_reg_set,
 void shader_core_ctx::issue() {
 	//really is issue;
 	for (unsigned i = 0; i < schedulers.size(); i++) {
-
-		//////////////////////////
-		current_scheduler = i;
-		//////////////////////////
-
 		schedulers[i]->cycle();
 	}
 }
@@ -2510,30 +2500,6 @@ void two_level_active_scheduler::order_warps() {
 	assert(num_promoted == num_demoted);
 }
 
-/////////////////////////////////myeditHW3
-void swl_scheduler::dynamic_swl_init() {
-
-	if (dynamic_swl_enabled) {
-		per_scheduler_insn = 0;
-
-		per_scheduler_IPC = 0;
-		left_IPC = 0;
-		right_IPC = 0;
-
-		new_kernel = 1;
-		new_kernel_counter = -1;
-	}
-}
-
-void swl_scheduler::accumulate_insn(unsigned active_count) {
-	if (dynamic_swl_enabled) {
-		per_scheduler_insn += active_count;
-	}
-}
-
-unsigned swl_scheduler::size_options[8] = { 1, 2, 4, 8, 16, 24, 32, 48 };
-/////////////////////////////////myeditHW3
-
 swl_scheduler::swl_scheduler(shader_core_stats* stats, shader_core_ctx* shader,
 		Scoreboard* scoreboard, simt_stack** simt,
 		std::vector<shd_warp_t>* warp, register_set* sp_out,
@@ -2567,88 +2533,6 @@ swl_scheduler::swl_scheduler(shader_core_stats* stats, shader_core_ctx* shader,
 }
 
 void swl_scheduler::order_warps() {
-///////////////////////////////myeditHW3
-	if (dynamic_swl_enabled) {
-		if (gpu_sim_cycle == 0) { //if new kernel
-			dynamic_swl_init();
-		}
-//new kernel search from beginning left to right
-		if (new_kernel == 1 && (gpu_sim_cycle % 1000) == 0) { //per 100 cycle
-
-			per_scheduler_IPC = (double) per_scheduler_insn / 1000; //collect previous
-			per_scheduler_insn = 0; //restart counter
-
-			if (per_scheduler_IPC >= left_IPC) { //continue searching
-				left_IPC = per_scheduler_IPC;
-				new_kernel_counter++;
-				if (new_kernel_counter == 8) { //can be at most 7
-					new_kernel_counter--;
-					new_kernel = 0;
-				}
-			} else { //stop if find peak
-				new_kernel_counter--;
-				new_kernel = 0;
-			}
-
-			m_num_warps_to_limit = size_options[new_kernel_counter];
-
-		} else { //within one kernel periodically search left and right to adjust
-
-			if ((gpu_sim_cycle % 10000) == 0) { //check left
-
-				left_IPC = 0;
-				right_IPC = 0;
-				per_scheduler_insn = 0; //restart counter
-
-				if (new_kernel_counter != 0) { //set to left
-					m_num_warps_to_limit = size_options[new_kernel_counter - 1];
-				} //else skip
-			}
-
-			if ((gpu_sim_cycle % 11000) == 0) { //check right
-
-				if (new_kernel_counter != 0) { //collect left
-					left_IPC = (double) per_scheduler_insn / 1000;
-				} //else left_IPC = 0
-
-				per_scheduler_insn = 0; //restart counter
-
-				if (new_kernel_counter != 7) { //set right
-					m_num_warps_to_limit = size_options[new_kernel_counter + 1];
-				} //else skip
-			}
-
-			if ((gpu_sim_cycle % 12000) == 0) { //check middle
-
-				if (new_kernel_counter != 0) { //collect right
-					right_IPC = (double) per_scheduler_insn / 1000;
-				} //else right_IPC = 0
-
-				per_scheduler_insn = 0; //restart counter
-
-				m_num_warps_to_limit = size_options[new_kernel_counter]; //set middle
-			}
-
-			if ((gpu_sim_cycle % 13000) == 0) { //set new size
-				per_scheduler_IPC = (double) per_scheduler_insn / 1000; //collect middle
-
-				//make adjustment
-				if (left_IPC > per_scheduler_IPC && left_IPC >= right_IPC) { //left_IPC highest
-					new_kernel_counter--;
-					m_num_warps_to_limit = size_options[new_kernel_counter];
-				}
-
-				if (left_IPC <= right_IPC && per_scheduler_IPC < right_IPC) { //right_IPC highest
-					new_kernel_counter++;
-					m_num_warps_to_limit = size_options[new_kernel_counter];
-				}
-
-				//else per_scheduler_IPC is highest. No need to change.
-
-			}
-		}
-	}
-///////////////////////////////myeditHW3
 
 //if (lrr_based_swl == 0) { ////////////gto based
 	if (SCHEDULER_PRIORITIZATION_GTO == m_prioritization) {
@@ -2843,10 +2727,6 @@ void shader_core_ctx::warp_inst_complete(const warp_inst_t &inst) {
 	/////////////myeditamc
 
 	inst.completed(gpu_tot_sim_cycle + gpu_sim_cycle);
-
-/////////////////////myeditHW3
-	schedulers[inst.scheduler_index]->accumulate_insn(inst.active_count());
-/////////////////////myeditHW3
 }
 
 void shader_core_ctx::writeback() {
@@ -3366,7 +3246,6 @@ void ldst_unit::writeback() {
 				if (mf->is_approximated()) { /////////redo with approximate data only.
 
 					if (redo_in_l1) {
-						actual_redo++;
 
 						unsigned is_ld = 1;
 						for (unsigned t = 0; t < 32; t++) {
