@@ -34,14 +34,16 @@
 ///////////////myedit bfloat
 unsigned dram_initialized = 0;
 float target_coverage = 0;
+
 unsigned approximated_req_count_temp_all = 0;
 unsigned total_access_count_temp_all = 0;
 unsigned approximated_req_count_all = 0;
 unsigned total_access_count_all = 0;
-//double threshold_bw_static_all = 0;
-//double threshold_bw_dynamic_all = 0;
 int threshold_length_static_all = 0; ///////////all and partial are same for static
 int threshold_length_dynamic_all = 0;
+//double threshold_bw_static_all = 0;
+//double threshold_bw_dynamic_all = 0;
+
 
 double bwutil;
 double bwutil_global_read;

@@ -107,6 +107,13 @@ extern double temp_bwutil_global_read; //////////pf
 extern double temp_bwutil_global_write; //////////pf
 ////////////myeditamc
 
+/////////////////myedit bfloat
+extern unsigned approximated_req_count_all = 0;
+extern unsigned total_access_count_all = 0;
+extern int threshold_length_static_all = 0; ///////////all and partial are same for static
+extern int threshold_length_dynamic_all = 0;
+/////////////////myedit bfloat
+
 class dram_t {
 public:
 	dram_t(unsigned int parition_id, const struct memory_config *config,
