@@ -467,10 +467,6 @@ void dram_t::cycle() {
 	}
 	n_cmd++; ///////////////number of cycles
 	n_cmd_partial++; ///////////////number of cycles for this channel
-	act_cmd++;	///////cycles in window
-	req_cmd++;	///////cycles in window
-	act_cmd_partial++;	///////cycles in window
-	req_cmd_partial++;	///////cycles in window
 
 	// decrements counters once for each time dram_issueCMD is called
 	DEC2ZERO(RRDc); /////////Their unit is command / address cycle (CK), not data cycle (WCK).
@@ -533,6 +529,29 @@ void dram_t::print(FILE* simFile) const {
 	if (m_config->scheduler_type == DRAM_FRFCFS)
 		fprintf(simFile, "mrqq: max=%d avg=%g\n", max_mrqs,
 				(float) ave_mrqs / n_cmd);
+
+	/////////////////////myedit bfloat
+	float current_coverage_partial = 0;
+	if (total_access_count_partial != 0) {
+		current_coverage_partial = (float) (approximated_req_count_partial)
+				/ (float) (total_access_count_partial);	///////////coverage control
+	}
+
+	fprintf(simFile, "actual coverage%d: %f, last threshold_length%d: %d\n",
+				id, current_coverage_partial, id, threshold_length_dynamic_partial);
+
+	if(id == 5){
+
+		float current_coverage = 0;
+		if (total_access_count_all != 0) {
+			current_coverage = (float) (approximated_req_count_all)
+					/ (float) (total_access_count_all);	///////////coverage control
+		}
+
+		fprintf(simFile, "actual coverage all: %f, last threshold_length all: %d\n",
+				current_coverage, threshold_length_dynamic_all);
+	}
+	/////////////////////myedit bfloat
 }
 
 void dram_t::visualize() const {
@@ -568,6 +587,29 @@ void dram_t::print_stat(FILE* simFile) {
 		fprintf(simFile, " %d", dram_eff_bins[i]);
 	fprintf(simFile, "\n");
 	max_mrqs_temp = 0;
+
+	/////////////////////myedit bfloat
+	float current_coverage_partial = 0;
+	if (total_access_count_partial != 0) {
+		current_coverage_partial = (float) (approximated_req_count_partial)
+				/ (float) (total_access_count_partial);	///////////coverage control
+	}
+
+	fprintf(simFile, "actual coverage%d: %f, last threshold_length%d: %d\n",
+				id, current_coverage_partial, id, threshold_length_dynamic_partial);
+
+	if(id == 5){
+
+		float current_coverage = 0;
+		if (total_access_count_all != 0) {
+			current_coverage = (float) (approximated_req_count_all)
+					/ (float) (total_access_count_all);	///////////coverage control
+		}
+
+		fprintf(simFile, "actual coverage all: %f, last threshold_length all: %d\n",
+				current_coverage, threshold_length_dynamic_all);
+	}
+	/////////////////////myedit bfloat
 }
 
 void dram_t::visualizer_print(gzFile visualizer_file) {

@@ -40,8 +40,8 @@ unsigned approximated_req_count_all = 0;
 unsigned total_access_count_all = 0;
 //double threshold_bw_static_all = 0;
 //double threshold_bw_dynamic_all = 0;
-double threshold_length_static_all = 0; ///////////all and partial are same for static
-double threshold_length_dynamic_all = 0;
+int threshold_length_static_all = 0; ///////////all and partial are same for static
+int threshold_length_dynamic_all = 0;
 
 double bwutil;
 double bwutil_global_read;
@@ -95,10 +95,10 @@ frfcfs_scheduler::frfcfs_scheduler(const memory_config *config, dram_t *dm,
 
 		threshold_length_static_all = m_config->threshold_length; ///////////used for both all and partial
 		threshold_length_dynamic_all = m_config->threshold_length; ////////////dynamic threshold is also initialized to static value
-		threshold_length_dynamic_partial = m_config->threshold_length;
+		m_dram->threshold_length_dynamic_partial = m_config->threshold_length;
 //		threshold_bw_static_all = m_config->threshold_bw;
 //		threshold_bw_dynamic_all = m_config->threshold_bw; ////////////dynamic threshold is also initialized to static value
-//		threshold_bw_dynamic_partial = m_config->threshold_bw;
+//		m_dram->threshold_bw_dynamic_partial = m_config->threshold_bw;
 		///////////////myedit bfloat
 
 		dram_initialized = 1;
@@ -283,7 +283,7 @@ void dram_t::scheduler_frfcfs() {
 				if (m_config->dynamic_on) { ////////dynamic bfloat scheme
 
 					if (temp_coverage < 0.98 * target_coverage) {
-						if(threshold_length >16){
+						if(threshold_length_dynamic_all >16){
 							threshold_length_dynamic_all--;
 						}
 
@@ -292,7 +292,7 @@ void dram_t::scheduler_frfcfs() {
 						////////threshold_length kept unchanged
 
 					} else { //////////////current_coverage > 1.01 * target_coverage
-						if(threshold_length < 32){
+						if(threshold_length_dynamic_all < 32){
 							threshold_length_dynamic_all++;
 						}
 					}////////////////////end of: if (current_coverage < 0.99 * target_coverage) {

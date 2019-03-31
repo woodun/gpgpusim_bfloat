@@ -41,6 +41,7 @@
 #include "../cuda-sim/memory.h"//include memory_space_impl.
 extern unsigned char *global_memory; // Pointer to memory image of data, to the object of global memory.
 extern unsigned char *cache_memory;
+#include "dram_sched.h" ////////////////myedit bfloat
 //////////////////myedit amc
 
 enum cache_block_state {

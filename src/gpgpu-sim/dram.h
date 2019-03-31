@@ -216,7 +216,7 @@ private:
 	unsigned int total_access_count_temp_partial; //per DRAM
 
 	double threshold_bw_dynamic_partial;
-	double threshold_length_dynamic_partial;
+	int threshold_length_dynamic_partial;
 	/////////////myedit bfloat
 
 	struct memory_stats_t *m_stats;
