@@ -2515,7 +2515,7 @@ swl_scheduler::swl_scheduler(shader_core_stats* stats, shader_core_ctx* shader,
 //                 &m_prioritization_readin,
 //                  &m_num_warps_to_limit
 //                 );
-	dynamic_swl_enabled = 0;
+
 	lrr_based_swl = 0; /////////myeditlrrswl
 
 	sscanf(config_string, "warp_limiting:%d:%d:%d:%d", &m_prioritization_readin,
