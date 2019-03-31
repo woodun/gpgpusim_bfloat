@@ -108,10 +108,10 @@ extern double temp_bwutil_global_write; //////////pf
 ////////////myeditamc
 
 /////////////////myedit bfloat
-extern unsigned approximated_req_count_all = 0;
-extern unsigned total_access_count_all = 0;
-extern int threshold_length_static_all = 0; ///////////all and partial are same for static
-extern int threshold_length_dynamic_all = 0;
+extern unsigned approximated_req_count_all;
+extern unsigned total_access_count_all;
+extern int threshold_length_static_all; ///////////all and partial are same for static
+extern int threshold_length_dynamic_all;
 /////////////////myedit bfloat
 
 class dram_t {
