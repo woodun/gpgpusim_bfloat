@@ -119,11 +119,9 @@ frfcfs_scheduler::frfcfs_scheduler(const memory_config *config, dram_t *dm,
 void frfcfs_scheduler::add_req(dram_req_t *req) {
 	m_num_pending++;
 
-	if (!m_config->delay_queue_size) {
-		m_queue[req->bk].push_front(req);
-		std::list<dram_req_t*>::iterator ptr = m_queue[req->bk].begin();
-		m_bins[req->bk][req->row].push_front(ptr); //newest reqs to the front
-	}
+	m_queue[req->bk].push_front(req);
+	std::list<dram_req_t*>::iterator ptr = m_queue[req->bk].begin();
+	m_bins[req->bk][req->row].push_front(ptr); //newest reqs to the front
 }
 
 void frfcfs_scheduler::data_collection(unsigned int bank) { //////////////however the last row activation's information is not counted.

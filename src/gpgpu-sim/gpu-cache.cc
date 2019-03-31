@@ -1348,14 +1348,12 @@ enum cache_request_status l1_cache::access(new_addr_type addr, mem_fetch *mf,
 		new_addr_type block_addr = m_config.block_addr(addr);
 		unsigned cache_index = (unsigned) -1;
 
-		enum cache_request_status probe_status = m_tag_array->probe(
-				block_addr, cache_index);
+		m_tag_array->probe(	block_addr, cache_index );
 		//////////get cache_index
 
 		if (m_tag_array->is_predicted(cache_index) == 1) {
 
 			if (redo_in_l1) {
-				actual_redo++;
 
 				unsigned is_ld = 1;
 				for (unsigned t = 0; t < 32; t++) {
@@ -1421,8 +1419,7 @@ enum cache_request_status l2_cache::access(new_addr_type addr, mem_fetch *mf,
 		new_addr_type block_addr = m_config.block_addr(addr);
 		unsigned cache_index = (unsigned) -1;
 
-		enum cache_request_status probe_status = m_tag_array->probe(
-				block_addr, cache_index);
+		m_tag_array->probe(	block_addr, cache_index);
 		//////////get cache_index
 
 		if (m_tag_array->is_predicted(cache_index) == 1) {

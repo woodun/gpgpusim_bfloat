@@ -41,10 +41,12 @@
 #include "../cuda-sim/memory.h"//include memory_space_impl.
 extern unsigned char *global_memory; // Pointer to memory image of data, to the object of global memory.
 extern unsigned char *cache_memory;
-//#include "dram_sched.h" ////////////////myedit bfloat
 //////////////////myedit amc
 
 ////////////////myedit bfloat
+//#include "dram_sched.h"
+#include "shader.h"
+
 extern unsigned print_profile;
 extern unsigned redo_in_l1;
 extern unsigned always_fill;
