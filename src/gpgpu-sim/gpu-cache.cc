@@ -30,6 +30,7 @@
 
 ///////////////////////myeditbfloat
 #include "../cuda-sim/ptx_sim.h"
+#include "shader.h"
 ///////////////////////myeditbfloat
 
 #include <assert.h>

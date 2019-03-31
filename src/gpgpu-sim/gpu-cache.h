@@ -45,7 +45,6 @@ extern unsigned char *cache_memory;
 
 ////////////////myedit bfloat
 //#include "dram_sched.h"
-#include "shader.h"
 
 extern unsigned print_profile;
 extern unsigned redo_in_l1;
