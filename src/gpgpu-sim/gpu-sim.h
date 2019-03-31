@@ -38,6 +38,10 @@
 #include <list>
 #include <stdio.h>
 
+////////////////////myedit bfloat
+//#include "gpu-cache.h"
+////////////////////myedit bfloat
+
 ////////////////myeditCAA
 extern unsigned kernel_index;
 ////////////////myeditCAA
