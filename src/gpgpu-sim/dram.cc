@@ -40,6 +40,7 @@ int PRINT_CYCLE = 0;
 
 /////////////////myedit bfloat
 unsigned actual_redo;
+unsigned actual_truncate;
 /////////////////myedit bfloat
 
 template class fifo_pipeline<mem_fetch> ;
@@ -553,8 +554,8 @@ void dram_t::print(FILE* simFile) const {
 		}
 
 		fprintf(simFile, "actual coverage all: %f, last threshold_length all: %d, approximated_req_count_all: %u, total_access_count_all: %u, total_float_count_all: %u, total_int_count_all: %u, "
-				"actual_redo: %u\n",
-				current_coverage, threshold_length_dynamic_all, approximated_req_count_all, total_access_count_all, total_float_count_all, total_int_count_all, actual_redo);
+				"actual_redo: %u, actual_truncate: %u\n",
+				current_coverage, threshold_length_dynamic_all, approximated_req_count_all, total_access_count_all, total_float_count_all, total_int_count_all, actual_redo, actual_truncate);
 	}
 	/////////////////////myedit bfloat
 }
@@ -612,8 +613,8 @@ void dram_t::print_stat(FILE* simFile) {
 		}
 
 		fprintf(simFile, "actual coverage all: %f, last threshold_length all: %d, approximated_req_count_all: %u, total_access_count_all: %u, total_float_count_all: %u, total_int_count_all: %u, "
-				"actual_redo: %u\n",
-				current_coverage, threshold_length_dynamic_all, approximated_req_count_all, total_access_count_all, total_float_count_all, total_int_count_all, actual_redo);
+				"actual_redo: %u, actual_truncate: %u\n",
+				current_coverage, threshold_length_dynamic_all, approximated_req_count_all, total_access_count_all, total_float_count_all, total_int_count_all, actual_redo, actual_truncate);
 	}
 	/////////////////////myedit bfloat
 }

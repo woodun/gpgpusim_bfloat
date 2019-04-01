@@ -274,6 +274,8 @@ enum cache_request_status tag_array::access(new_addr_type addr, unsigned time,
 ////////myedit bfloat
 void tag_array::truncate_float(mem_fetch *mf) { /////////////must make sure it is float
 
+	actual_truncate++;
+
 	new_addr_type addr = mf->get_addr();
 	new_addr_type block_addr = m_config.block_addr(addr);
 
@@ -292,7 +294,7 @@ void tag_array::truncate_float(mem_fetch *mf) { /////////////must make sure it i
 
 		/////////////////////truncate the data (make sure it is little endian)
 		for(int i = 0; i < data->get_data_size(); i++){
-			if(i & 3 < 2 ){ ////////////////truncate the first two bytes
+			if( (i & 3) < 2 ){ ////////////////truncate the first two bytes
 				mydata[i] = 0;
 			}
 		}

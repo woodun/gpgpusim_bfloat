@@ -52,6 +52,7 @@ extern unsigned always_fill;
 extern unsigned bypassl2d;
 
 extern unsigned actual_redo;
+extern unsigned actual_truncate;
 ////////////////myedit bfloat
 
 enum cache_block_state {
