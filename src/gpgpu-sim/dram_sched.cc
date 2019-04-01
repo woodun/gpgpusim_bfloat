@@ -43,6 +43,8 @@ int threshold_length_static_all = 0; ///////////all and partial are same for sta
 int threshold_length_dynamic_all = 0;
 //double threshold_bw_static_all = 0;
 //double threshold_bw_dynamic_all = 0;
+unsigned total_float_count_all = 0;
+unsigned total_int_count_all = 0;
 
 
 double bwutil;
@@ -348,7 +350,7 @@ void dram_t::scheduler_frfcfs() {
 				unsigned can_truncate = 0;
 
 				if(m_config->truncate_enabled){
-					if(req->data->get_inst().oprnd_type == 1){
+					if(req->data->get_inst().oprnd_type == 1 && mf->get_access_type() == GLOBAL_ACC_R ){ //////must be float and global read, does not have to be non-atomic ( !mf->is_access_atomic() ?)
 						if ( m_config->distributed_scheduling ) { ////////distributed scheduling
 
 							float current_coverage_partial = 0;
@@ -390,7 +392,7 @@ void dram_t::scheduler_frfcfs() {
 				} ///////////////end of: if(m_config->truncate_enabled){
 
 				if (m_config->remove_all) { ///////////////test scope
-					if(req->data->get_inst().oprnd_type == 1){
+					if(req->data->get_inst().oprnd_type == 1 && mf->get_access_type() == GLOBAL_ACC_R){ //////must be float and global read, does not have to be non-atomic ( !mf->is_access_atomic() ?)
 
 						req->nbytes = req->nbytes / 2;
 
@@ -420,6 +422,12 @@ void dram_t::scheduler_frfcfs() {
 						approximated_req_count_partial++;
 						approximated_req_count_temp_partial++;
 					}
+				}
+
+				if(req->data->get_inst().oprnd_type == 1){
+					total_float_count_all++;
+				}else if(req->data->get_inst().oprnd_type == 0){
+					total_int_count_all++;
 				}
 
 				total_access_count_all++;

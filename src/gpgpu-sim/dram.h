@@ -110,6 +110,8 @@ extern double temp_bwutil_global_write; //////////pf
 /////////////////myedit bfloat
 extern unsigned approximated_req_count_all;
 extern unsigned total_access_count_all;
+extern unsigned total_float_count_all;
+extern unsigned total_int_count_all;
 extern int threshold_length_static_all; ///////////all and partial are same for static
 extern int threshold_length_dynamic_all;
 /////////////////myedit bfloat

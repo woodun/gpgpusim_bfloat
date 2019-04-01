@@ -548,8 +548,8 @@ void dram_t::print(FILE* simFile) const {
 					/ (float) (total_access_count_all);	///////////coverage control
 		}
 
-		fprintf(simFile, "actual coverage all: %f, last threshold_length all: %d\n",
-				current_coverage, threshold_length_dynamic_all);
+		fprintf(simFile, "actual coverage all: %f, last threshold_length all: %d, approximated_req_count_all: %u, total_access_count_all: %u, total_float_count_all: %u, total_int_count_all: %u\n",
+				current_coverage, threshold_length_dynamic_all, approximated_req_count_all, total_access_count_all, total_float_count_all, total_int_count_all);
 	}
 	/////////////////////myedit bfloat
 }
@@ -606,8 +606,8 @@ void dram_t::print_stat(FILE* simFile) {
 					/ (float) (total_access_count_all);	///////////coverage control
 		}
 
-		fprintf(simFile, "actual coverage all: %f, last threshold_length all: %d\n",
-				current_coverage, threshold_length_dynamic_all);
+		fprintf(simFile, "actual coverage all: %f, last threshold_length all: %d, approximated_req_count_all: %u, total_access_count_all: %u, total_float_count_all: %u, total_int_count_all: %u\n",
+				current_coverage, threshold_length_dynamic_all, approximated_req_count_all, total_access_count_all, total_float_count_all, total_int_count_all);
 	}
 	/////////////////////myedit bfloat
 }
