@@ -50,6 +50,8 @@ extern unsigned print_profile;
 extern unsigned redo_in_l1;
 extern unsigned always_fill;
 extern unsigned bypassl2d;
+
+extern unsigned actual_redo;
 ////////////////myedit bfloat
 
 enum cache_block_state {

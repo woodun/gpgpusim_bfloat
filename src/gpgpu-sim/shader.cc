@@ -3247,6 +3247,8 @@ void ldst_unit::writeback() {
 
 					if (redo_in_l1) {
 
+						actual_redo++;
+
 						unsigned is_ld = 1;
 						for (unsigned t = 0; t < 32; t++) {
 

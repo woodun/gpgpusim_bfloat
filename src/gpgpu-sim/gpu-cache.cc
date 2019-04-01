@@ -1354,6 +1354,8 @@ enum cache_request_status l1_cache::access(new_addr_type addr, mem_fetch *mf,
 
 			if (redo_in_l1) {
 
+				actual_redo++;
+
 				unsigned is_ld = 1;
 				for (unsigned t = 0; t < 32; t++) {
 
