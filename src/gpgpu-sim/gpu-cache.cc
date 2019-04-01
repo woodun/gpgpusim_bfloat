@@ -1341,9 +1341,7 @@ enum cache_request_status l1_cache::access(new_addr_type addr, mem_fetch *mf,
 
 	enum cache_request_status access_status = data_cache::access(addr, mf, time, events);
 
-	if (access_status == HIT && !mf->get_is_write()
-								&& mf->get_access_type() == GLOBAL_ACC_R
-								&& !mf->is_access_atomic()) { //////////hit a predicted data, then redo the load with data from cache space
+	if (access_status == HIT && mf->get_access_type() == GLOBAL_ACC_R ) { //////////hit a predicted data, then redo the load with data from cache space
 
 		//////////get cache_index
 		new_addr_type block_addr = m_config.block_addr(addr);
@@ -1396,7 +1394,7 @@ enum cache_request_status l1_cache::access(new_addr_type addr, mem_fetch *mf,
 			}/////////end of: if (redo_in_l1) {
 
 		} /////end of: if (m_tag_array->is_predicted(cache_index) == 1) {
-	}/////end of: if (access_status == HIT && !mf->get_is_write() && mf->get_access_type() == GLOBAL_ACC_R && !mf->is_access_atomic()) {
+	}/////end of: if (access_status == HIT && mf->get_access_type() == GLOBAL_ACC_R ) {
 
 	return access_status;
 	//return data_cache::access(addr, mf, time, events);
@@ -1412,9 +1410,7 @@ enum cache_request_status l2_cache::access(new_addr_type addr, mem_fetch *mf,
 	//////////////myeditDSN: process l2 hit approx
 	enum cache_request_status access_status = data_cache::access(addr, mf, time, events);
 
-	if (access_status == HIT && !mf->get_is_write()
-								&& mf->get_access_type() == GLOBAL_ACC_R
-								&& !mf->is_access_atomic()) { //////////hit a predicted data, then redo the load with data from cache space
+	if (access_status == HIT && mf->get_access_type() == GLOBAL_ACC_R ) { //////////hit a predicted data, then redo the load with data from cache space
 
 		//////////get cache_index
 		new_addr_type block_addr = m_config.block_addr(addr);

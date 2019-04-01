@@ -3268,9 +3268,7 @@ void ldst_unit::writeback() {
 
 						if (is_ld == 1) {
 
-							if (!mf->get_is_write()
-									&& mf->get_access_type() == GLOBAL_ACC_R
-									&& !mf->is_access_atomic()) { //////////hit a predicted data, then redo the load with data from cache space
+							if ( mf->get_access_type() == GLOBAL_ACC_R ) { //////////hit a predicted data, then redo the load with data from cache space
 
 								for (unsigned t = 0; t < 32; t++) {
 
@@ -3287,7 +3285,7 @@ void ldst_unit::writeback() {
 										} ////////////end of: if (mf->get_inst().active(thread_of_warp_in_line - 1))
 									} ////////end of: if (thread_of_warp_in_line > 0)
 								} ////////end of: for (unsigned t = 0; t < 32; t++)
-							} //////end of:if (probe_status == HIT && !mf->get_is_write() && mf->get_access_type() == GLOBAL_ACC_R && !mf->is_access_atomic())
+							} //////end of:if ( mf->get_access_type() == GLOBAL_ACC_R )
 						} //////end of: if (is_ld == 1)
 					}/////////end of: if (redo_in_l1) {
 

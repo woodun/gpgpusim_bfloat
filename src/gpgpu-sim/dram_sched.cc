@@ -350,7 +350,7 @@ void dram_t::scheduler_frfcfs() {
 				unsigned can_truncate = 0;
 
 				if(m_config->truncate_enabled){
-					if(req->data->get_inst().oprnd_type == 1 && mf->get_access_type() == GLOBAL_ACC_R ){ //////must be float and global read, does not have to be non-atomic ( !mf->is_access_atomic() ?)
+					if(req->data->get_inst().oprnd_type == 1 && req->data->get_access_type() == GLOBAL_ACC_R ){ //////must be float and global read, does not have to be non-atomic ( !mf->is_access_atomic() ?)
 						if ( m_config->distributed_scheduling ) { ////////distributed scheduling
 
 							float current_coverage_partial = 0;
@@ -392,7 +392,7 @@ void dram_t::scheduler_frfcfs() {
 				} ///////////////end of: if(m_config->truncate_enabled){
 
 				if (m_config->remove_all) { ///////////////test scope
-					if(req->data->get_inst().oprnd_type == 1 && mf->get_access_type() == GLOBAL_ACC_R){ //////must be float and global read, does not have to be non-atomic ( !mf->is_access_atomic() ?)
+					if(req->data->get_inst().oprnd_type == 1 && req->data->get_access_type() == GLOBAL_ACC_R){ //////must be float and global read, does not have to be non-atomic ( !mf->is_access_atomic() ?)
 
 						req->nbytes = req->nbytes / 2;
 
