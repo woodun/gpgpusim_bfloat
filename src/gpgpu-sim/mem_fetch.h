@@ -193,6 +193,10 @@ public:
 	void set_truncate_ratio(int ratio) {
 		truncate_ratio = ratio;
 	}
+
+	int get_truncate_ratio() {
+		return truncate_ratio;
+	}
 	////////////////myedit bfloat
 
 private:

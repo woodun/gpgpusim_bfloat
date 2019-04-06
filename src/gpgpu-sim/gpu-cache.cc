@@ -293,13 +293,13 @@ void tag_array::truncate_float(mem_fetch *mf) { /////////////must make sure it i
 				(block_addr >> 7) << 7, data->get_data_size(), mydata);
 
 		/////////////////////truncate the data (make sure it is little endian)
-		if(mf->truncate_ratio == 2){
+		if(mf->get_truncate_ratio() == 2){
 			for(int i = 0; i < data->get_data_size(); i += 4){
 				////////////////truncate the first two bytes
 				mydata[i] = 0;
 				mydata[i + 1] = 0;
 			}
-		}else if(mf->truncate_ratio == 4){
+		}else if(mf->get_truncate_ratio() == 4){
 			unsigned char top_byte;
 			unsigned char second_byte;
 			unsigned char exp_byte;
