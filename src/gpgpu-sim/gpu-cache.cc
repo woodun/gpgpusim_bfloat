@@ -293,9 +293,49 @@ void tag_array::truncate_float(mem_fetch *mf) { /////////////must make sure it i
 				(block_addr >> 7) << 7, data->get_data_size(), mydata);
 
 		/////////////////////truncate the data (make sure it is little endian)
-		for(int i = 0; i < data->get_data_size(); i++){
-			if( (i & 3) < 2 ){ ////////////////truncate the first two bytes
+		if(mf->truncate_ratio == 2){
+			for(int i = 0; i < data->get_data_size(); i += 4){
+				////////////////truncate the first two bytes
 				mydata[i] = 0;
+				mydata[i + 1] = 0;
+			}
+		}else if(mf->truncate_ratio == 4){
+			unsigned char top_byte;
+			unsigned char second_byte;
+			unsigned char exp_byte;
+			int exp_value;
+			for(int i = 0; i < data->get_data_size(); i += 4){
+				////////////////truncate the first two bytes
+				mydata[i] = 0;
+				mydata[i + 1] = 0;
+
+				second_byte = mydata[i + 2];
+				top_byte = mydata[i + 3];
+
+				exp_byte = ( (top_byte & 127) << 1 ) | (second_byte >> 7); //getting bit values for exp bits
+				exp_value = exp_byte - 127;
+
+				if(exp_value == 128 || exp_value == -127){ ///////////////////use zeros for both subnormal and inf cases
+					//do nothing
+				}else{
+					if(exp_value > 0){
+						exp_value = exp_value & 15;
+					}else{
+						exp_value = (exp_value - 1);/////////////0 to -126 correspond -1 to -127 in new format representation, new_format = exp_value - 1.
+						exp_value = exp_value & 15;
+						exp_value = exp_value + 1;
+					}
+				}
+
+				exp_byte = exp_value  + 127;
+
+				second_byte = second_byte & 96; ///////truncate the last 5 bits, clear the first bit
+				second_byte = second_byte | ( exp_byte << 7 ); ////////assign exp_byte last bit to second_byte first bit
+				mydata[i + 2] = second_byte;
+
+				top_byte = top_byte & 128; //////////clear the last 7 bits
+				top_byte = top_byte | ( exp_byte >> 1 ); ////////assign exp_byte first 7 bits to top_byte last 7 bits
+				mydata[i] = top_byte;
 			}
 		}
 

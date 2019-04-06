@@ -209,6 +209,9 @@ struct memory_config {
 
 			option_parser_register(dram_opp, "distributed_scheduling", OPT_UINT32,
 											&distributed_scheduling, "scheduling is distributed across each memory controller or not", "0");
+
+			option_parser_register(dram_opp, "truncate_ratio", OPT_UINT32,
+											&default_truncate_ratio, "default_truncate_ratio", "0");
 			//////////////////////myeditamc
 
 			option_parser_register(dram_opp, "nbk", OPT_UINT32, &nbk,
@@ -321,6 +324,7 @@ struct memory_config {
 	unsigned dynamic_on;
 	unsigned reprofiling_cycles;
 	unsigned profiling_cycles_bw;
+	int default_truncate_ratio; ///////////////myedit bfloat
 	///////////////////////myeditamc
 
 	unsigned tCCD; //column to column delay

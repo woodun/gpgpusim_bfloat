@@ -189,11 +189,21 @@ public:
 	}
 	/////////////////myedit AMC
 
+	////////////////myedit bfloat
+	void set_truncate_ratio(int ratio) {
+		truncate_ratio = ratio;
+	}
+	////////////////myedit bfloat
+
 private:
 
 	/////////////////myedit AMC
 	unsigned is_approx;
 	/////////////////myedit AMC
+
+	////////////////myedit bfloat
+	int truncate_ratio;
+	////////////////myedit bfloat
 
 	// request source information
 	unsigned m_request_uid;

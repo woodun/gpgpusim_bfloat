@@ -67,6 +67,8 @@ unsigned print_profile;
 unsigned redo_in_l1;
 unsigned always_fill;
 unsigned bypassl2d;
+
+unsigned current_truncate_ratio;
 ///////////////myedit bfloat
 
 
@@ -103,6 +105,8 @@ frfcfs_scheduler::frfcfs_scheduler(const memory_config *config, dram_t *dm,
 //		threshold_bw_static_all = m_config->threshold_bw;
 //		threshold_bw_dynamic_all = m_config->threshold_bw; ////////////dynamic threshold is also initialized to static value
 //		m_dram->threshold_bw_dynamic_partial = m_config->threshold_bw;
+
+		current_truncate_ratio = m_config->default_truncate_ratio;
 		///////////////myedit bfloat
 
 		dram_initialized = 1;
@@ -399,6 +403,7 @@ void dram_t::scheduler_frfcfs() {
 						if(m_config->approx_enabled){ ///////redo ld with approximate data or not
 
 							req->data->set_approx(); //////mark this mf as approximated data
+							req->data->set_truncate_ratio( current_truncate_ratio ); //////set truncate ratio
 						}
 
 						approximated_req_count_all++;
@@ -415,6 +420,7 @@ void dram_t::scheduler_frfcfs() {
 
 						if(m_config->approx_enabled){ ///////redo ld with approximate data or not
 							req->data->set_approx(); //////mark this mf as approximated data
+							req->data->set_truncate_ratio( current_truncate_ratio ); //////set truncate ratio
 						}
 
 						approximated_req_count_all++;
