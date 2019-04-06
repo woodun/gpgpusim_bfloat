@@ -398,7 +398,7 @@ void dram_t::scheduler_frfcfs() {
 				if (m_config->remove_all) { ///////////////test scope
 					if(req->data->get_inst().oprnd_type == 1 && req->data->get_access_type() == GLOBAL_ACC_R){ //////must be float and global read, does not have to be non-atomic ( !mf->is_access_atomic() ?)
 
-						req->nbytes = req->nbytes / 2;
+						req->nbytes = req->nbytes / current_truncate_ratio;
 
 						if(m_config->approx_enabled){ ///////redo ld with approximate data or not
 
@@ -416,7 +416,7 @@ void dram_t::scheduler_frfcfs() {
 
 					if(can_truncate == 1){
 
-						req->nbytes = req->nbytes / 2;
+						req->nbytes = req->nbytes / current_truncate_ratio;
 
 						if(m_config->approx_enabled){ ///////redo ld with approximate data or not
 							req->data->set_approx(); //////mark this mf as approximated data
