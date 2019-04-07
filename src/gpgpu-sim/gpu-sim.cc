@@ -1277,6 +1277,16 @@ void gpgpu_sim::cycle() {
 								gpu_sim_cycle + gpu_tot_sim_cycle);
 					mf->set_status(IN_ICNT_TO_SHADER,
 							gpu_sim_cycle + gpu_tot_sim_cycle);
+
+					switch (mf->get_type()) {
+					case READ_REQUEST:  break;
+					case WRITE_REQUEST: break;
+					case READ_REPLY:    break;
+					case WRITE_ACK:     break;
+					default: printf("debug2:############# mf_type=%d", mf->get_type());
+					assert (0);
+					}
+
 					::icnt_push(m_shader_config->mem2device(i), mf->get_tpc(),
 							mf, response_size);
 					m_memory_sub_partition[i]->pop();

@@ -238,16 +238,6 @@ void dram_t::cycle() {
 						&& data->get_access_type() != L2_WRBK_ACC) { /////Read request has to send reply. write request has to send acknowledgment.
 					data->set_reply(); //////change the type from request to reply.
 					returnq->push(data); /////and will proceed to dram_L2_queue later on.
-
-					  switch (data->get_type()) {
-					    case READ_REQUEST:  break;
-					    case WRITE_REQUEST: break;
-					    case READ_REPLY:    break;
-					    case WRITE_ACK:     break;
-					    default: printf("debug1:############# mf_type=%d", data->get_type());
-					    assert (0);
-					  }
-
 				} else { ///////////writeback does not have any reply.
 					m_memory_partition_unit->set_done(data); //////////////m_request_tracker.erase(mf);
 					delete data;

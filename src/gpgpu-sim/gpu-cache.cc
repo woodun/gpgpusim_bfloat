@@ -286,16 +286,6 @@ void tag_array::truncate_float(mem_fetch *mf) { /////////////must make sure it i
 
 	address_limit = data->get_addr() + data->get_data_size(); //////////////myeditDSN
 
-
-	switch (mf->get_type()) {
-	case READ_REQUEST:  break;
-	case WRITE_REQUEST: break;
-	case READ_REPLY:    break;
-	case WRITE_ACK:     break;
-	default: printf("debug2:############# mf_type=%d", mf->get_type());
-	assert (0);
-	}
-
 	if (address_limit <= 0x100000000) {
 
 		//////////////read from global space
