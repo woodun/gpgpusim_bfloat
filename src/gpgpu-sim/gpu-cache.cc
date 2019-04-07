@@ -286,6 +286,16 @@ void tag_array::truncate_float(mem_fetch *mf) { /////////////must make sure it i
 
 	address_limit = data->get_addr() + data->get_data_size(); //////////////myeditDSN
 
+
+	switch (mf->get_type()) {
+	case READ_REQUEST:  break;
+	case WRITE_REQUEST: break;
+	case READ_REPLY:    break;
+	case WRITE_ACK:     break;
+	default: printf("debug2:############# mf_type=%d", mf->get_type());
+	assert (0);
+	}
+
 	if (address_limit <= 0x100000000) {
 
 		//////////////read from global space
@@ -335,7 +345,7 @@ void tag_array::truncate_float(mem_fetch *mf) { /////////////must make sure it i
 
 				top_byte = top_byte & 128; //////////clear the last 7 bits
 				top_byte = top_byte | ( exp_byte >> 1 ); ////////assign exp_byte first 7 bits to top_byte last 7 bits
-				mydata[i] = top_byte;
+				mydata[i + 3] = top_byte;
 			}
 		}
 
@@ -344,6 +354,15 @@ void tag_array::truncate_float(mem_fetch *mf) { /////////////must make sure it i
 				(block_addr >> 7) << 7, data->get_data_size(), mydata);
 	} else {
 		printf("out of memory bound of 4gb\n");
+	}
+
+	switch (mf->get_type()) {
+	case READ_REQUEST:  break;
+	case WRITE_REQUEST: break;
+	case READ_REPLY:    break;
+	case WRITE_ACK:     break;
+	default: printf("debug2:############# mf_type=%d", mf->get_type());
+	assert (0);
 	}
 
 	delete[] mydata;
@@ -817,7 +836,6 @@ void baseline_cache::fill(mem_fetch *mf, unsigned time) {
 	mf->set_data_size(e->second.m_data_size);
 
 	/////////////myedit AMC
-
 	if (!mf->is_approximated() || always_fill) {
 
 		if (m_config.m_alloc_policy == ON_MISS) {
