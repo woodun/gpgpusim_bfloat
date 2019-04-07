@@ -169,16 +169,6 @@ void InterconnectInterface::Push(unsigned input_deviceID, unsigned output_device
     }
   }
 
-  mem_fetch* mf2 = data;
-  switch (mf2->get_type()) {
-    case READ_REQUEST:  packet_type = Flit::READ_REQUEST   ;break;
-    case WRITE_REQUEST: packet_type = Flit::WRITE_REQUEST  ;break;
-    case READ_REPLY:    packet_type = Flit::READ_REPLY     ;break;
-    case WRITE_ACK:     packet_type = Flit::WRITE_REPLY    ;break;
-    default: printf("mf_type=%d", mf2->get_type());
-    assert (0);
-  }
-
   //TODO: Remove mem_fetch to reduce dependency
   Flit::FlitType packet_type;
   mem_fetch* mf = static_cast<mem_fetch*>(data);
