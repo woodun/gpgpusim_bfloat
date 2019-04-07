@@ -244,7 +244,7 @@ void dram_t::cycle() {
 					    case WRITE_REQUEST: break;
 					    case READ_REPLY:    break;
 					    case WRITE_ACK:     break;
-					    default: printf("debug1:############# mf_type=%d", mf->get_type());
+					    default: printf("debug1:############# mf_type=%d", data->get_type());
 					    assert (0);
 					  }
 
