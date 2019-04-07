@@ -190,11 +190,11 @@ public:
 	/////////////////myedit AMC
 
 	////////////////myedit bfloat
-	void set_truncate_ratio(int ratio) {
+	void set_truncate_ratio(unsigned ratio) {
 		truncate_ratio = ratio;
 	}
 
-	int get_truncate_ratio() {
+	unsigned get_truncate_ratio() {
 		return truncate_ratio;
 	}
 	////////////////myedit bfloat
@@ -206,7 +206,7 @@ private:
 	/////////////////myedit AMC
 
 	////////////////myedit bfloat
-	int truncate_ratio;
+	unsigned truncate_ratio;
 	////////////////myedit bfloat
 
 	// request source information

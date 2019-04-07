@@ -324,7 +324,7 @@ struct memory_config {
 	unsigned dynamic_on;
 	unsigned reprofiling_cycles;
 	unsigned profiling_cycles_bw;
-	int default_truncate_ratio; ///////////////myedit bfloat
+	unsigned default_truncate_ratio; ///////////////myedit bfloat
 	///////////////////////myeditamc
 
 	unsigned tCCD; //column to column delay
