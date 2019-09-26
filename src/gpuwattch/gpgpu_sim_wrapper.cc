@@ -718,7 +718,7 @@ void gpgpu_sim_wrapper::detect_print_steady_state(int position, double init_val)
 				// Get current average
 				double temp_avg = sample_val / (double)samples.size() ;
 
-				if( abs(proc->rt_power.readOp.dynamic-temp_avg) < gpu_steady_power_deviation){ // Value is within threshold
+				if( abs(proc->rt_power.readOp.dynamic - temp_avg) < gpu_steady_power_deviation){ // Value is within threshold
 					sample_val += proc->rt_power.readOp.dynamic;
 					samples.push_back(proc->rt_power.readOp.dynamic);
 					for(unsigned i=0; i<(num_perf_counters); ++i){

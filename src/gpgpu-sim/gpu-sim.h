@@ -196,7 +196,7 @@ struct memory_config {
 					&threshold_bw, "threshold_bw", "0");
 
 			option_parser_register(dram_opp, "threshold_length", OPT_UINT32,
-					&threshold_length, "threshold_length", "0");
+					&threshold_length, "threshold_length for the pending to queue size to decide whether to truncate or not in the dynamic scheme", "0");
 
 			option_parser_register(dram_opp, "dynamic_on", OPT_UINT32,
 								&dynamic_on, "dynamically picking the e", "0");
@@ -211,7 +211,19 @@ struct memory_config {
 											&distributed_scheduling, "scheduling is distributed across each memory controller or not", "0");
 
 			option_parser_register(dram_opp, "truncate_ratio", OPT_UINT32,
-											&default_truncate_ratio, "default_truncate_ratio", "0");
+											&default_truncate_ratio, "default truncation ratio", "0");
+
+			option_parser_register(dram_opp, "truncation_scenario", OPT_UINT32,
+											&truncation_scenario, "from what and truncate to what?", "0");
+
+			option_parser_register(dram_opp, "dbi_toggle", OPT_UINT32,
+											&dbi_toggle, "dbi_toggle", "0");
+
+			option_parser_register(dram_opp, "energy_profiling", OPT_UINT32,
+														&energy_profiling, "energy_profiling", "0");
+
+			option_parser_register(dram_opp, "error_profiling", OPT_UINT32,
+														&error_profiling, "error_profiling", "0");
 			//////////////////////myeditamc
 
 			option_parser_register(dram_opp, "nbk", OPT_UINT32, &nbk,
@@ -325,6 +337,10 @@ struct memory_config {
 	unsigned reprofiling_cycles;
 	unsigned profiling_cycles_bw;
 	unsigned default_truncate_ratio; ///////////////myedit bfloat
+	unsigned truncation_scenario; ///////////////myedit bfloat
+	unsigned dbi_toggle;
+	unsigned energy_profiling;
+	unsigned error_profiling;
 	///////////////////////myeditamc
 
 	unsigned tCCD; //column to column delay

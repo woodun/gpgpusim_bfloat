@@ -25,7 +25,7 @@
  * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.”
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  ***************************************************************************/
 /********************************************************************
@@ -117,7 +117,7 @@ Processor::Processor(ParseXML *XML_interface)
 		  cores.push_back(new Core(XML,i, &interface_ip));
 		  cores[i]->computeEnergy();
 		  cores[i]->computeEnergy(false);
-		  if (procdynp.homoCore){
+		  if (procdynp.homoCore){//myquestion what is homocore?
 			  core.area.set_area(core.area.get_area() + cores[i]->area.get_area()*procdynp.numCore);
 			  set_pppm(pppm_t,cores[i]->clockRate*procdynp.numCore, procdynp.numCore,procdynp.numCore,procdynp.numCore);
 			  //set the exClockRate
@@ -457,7 +457,7 @@ void Processor::compute ()
 		  cores[i]->compute();
 		  //cores[i]->computeEnergy(false);
 		  if (procdynp.homoCore){
-			  set_pppm(pppm_t,1/cores[i]->executionTime, procdynp.numCore,procdynp.numCore,procdynp.numCore);
+			  set_pppm(pppm_t,1/cores[i]->executionTime, procdynp.numCore,procdynp.numCore,procdynp.numCore);//myquestion how did they know the execution time?
 			  core.rt_power = core.rt_power + cores[i]->rt_power*pppm_t;
 			  rt_power = rt_power  + core.rt_power;
 		  }

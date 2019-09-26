@@ -293,50 +293,100 @@ void tag_array::truncate_float(mem_fetch *mf) { /////////////must make sure it i
 				(block_addr >> 7) << 7, data->get_data_size(), mydata);
 
 		/////////////////////truncate the data (make sure it is little endian)
-		if(mf->get_truncate_ratio() == 2){
-			for(int i = 0; i < data->get_data_size(); i += 4){
-				////////////////truncate the first two bytes
-				mydata[i] = 0;
-				mydata[i + 1] = 0;
-			}
-		}else if(mf->get_truncate_ratio() == 4){
-			unsigned char top_byte;
-			unsigned char second_byte;
-			unsigned char exp_byte;
-			int exp_value;
-			for(int i = 0; i < data->get_data_size(); i += 4){
-				////////////////truncate the first two bytes
-				mydata[i] = 0;
-				mydata[i + 1] = 0;
 
-				second_byte = mydata[i + 2];
-				top_byte = mydata[i + 3];
+		/////////// truncation schemes:
+		/////////// F32 (1, 8, 23) -> F16 (1, 5, 10) -> F8 (1, 4, 3):
+		/////////// F32 (1, 8, 23) -> B16 (1, 8, 7)  -> B8 (1, 5, 2):
 
-				exp_byte = ( (top_byte & 127) << 1 ) | (second_byte >> 7); //getting bit values for exp bits
-				exp_value = exp_byte - 127;
+		/////////// NF32 (1, 8, 23) -> NF16 (1, 5, 10) -> NF8 (1, 4, 3):
+		/////////// NF32 (1, 8, 23) -> NB16 (1, 8, 7) -> NB8 (1, 5, 2):
 
-				if(exp_value == 128 || exp_value == -127){ ///////////////////use zeros for both subnormal and inf cases
-					//do nothing
-				}else{
-					if(exp_value > 0){
-						exp_value = exp_value & 15;
-					}else{
-						exp_value = (exp_value - 1);/////////////0 to -126 correspond -1 to -127 in new format representation, new_format = exp_value - 1.
-						exp_value = exp_value & 15;
-						exp_value = exp_value + 1;
-					}
+
+		/////////// I32 -> IL16 -> IL8 (left remained): NA. Float cannot be stored in int. Int stored in int is proved to be bad for energy and error in exp1. But int can be stored in float and tested in above shemes.
+		/////////// I32 -> IR16 -> IR8 (right remained): NA. Float cannot be stored in int. Int stored in int is proved to be bad for energy and error in exp1. But int can be stored in float and tested in above shemes.
+
+		/////// F32: 127 to 1, 0 to -126 (254 to 128, 127 to 1), 0 is subnormal, 255 is inf
+		/////// F16: 15 to 1, 0 to -14 (30 to 16, 15 to 1), 0 is subnormal, 31 is inf
+		/////// F8: 7 to 1, 0 to -6 (14 to 8, 7 to 1), 0 is subnormal, 15 is inf
+
+		/////// F32: 127 to 1, 0 to -126 (254 to 128, 127 to 1), 0 is subnormal, 255 is inf
+		/////// B16: 127 to 1, 0 to -126 (254 to 128, 127 to 1), 0 is subnormal, 255 is inf
+		/////// B8: 15 to 1, 0 to -14 (30 to 16, 15 to 1), 0 is subnormal, 31 is inf
+
+		/////// NF32: 127 to 1, 0 to -126 (127 to 1, -0 to -126), 0 is subnormal, 255 is inf
+		/////// NF16: 15 to 1, 0 to -14 (15 to 1, -0 to -14), 0 is subnormal, 31 is inf
+		/////// NF8: 7 to 1, 0 to -6 (7 to 1, -0 to -6), 0 is subnormal, 15 is inf
+
+		/////// NF32: 127 to 1, 0 to -126 (127 to 1, -0 to -126), 0 is subnormal, 255 is inf
+		/////// NB16: 127 to 1, 0 to -126 (127 to 1, -0 to -126), 0 is subnormal, 255 is inf
+		/////// NB8: 15 to 1, 0 to -14 (15 to 1, -0 to -14), 0 is subnormal, 31 is inf
+
+		////////scenarios:
+		////////scenario 0: No truncation
+		////////scenario 1: float32 to float16 and to float8 (depending on truncate_ratio)
+		////////scenario 2: float32 to bfloat16 and to bfloat8 (depending on truncate_ratio)
+		////////scenario 3: new float32 to new float16 and to new float8 (depending on truncate_ratio)
+		////////scenario 4: new float32 to new bfloat16 and to new bfloat8 (depending on truncate_ratio)
+		////////scenario 5: profiling mode, truncated value is not written back to memory
+
+		////////DBI toggle: enable/disable DBI
+		////////energy profiling toggle: get the number of bit flips and ones, when working with scenario 5, counts for all truncation scenarios are collected. truncated value is not written back to memory.
+		////////error profiling toggle: collect the hardware error or not, when working with scenario 5, hardware errors for all truncation scenarios are collected. truncated value is not written back to memory.
+		////////question: is bit flips modeled in gpuwattch? If not, how do we model their % memory energy or % system energy based on their count? (Joule per count? find this info)
+
+		////////power model vampire, drampower
+
+		if(get_truncation_scenario() == 0){//////////////In scenario 0, when truncate truncate float to bfloat?
+
+			if(mf->get_truncate_ratio() == 2){/////////In scenario 0, this is float32 to bfloat16. In other scenarios, this code remains the same even when truncate new_float32 to bfloat16.
+				for(int i = 0; i < data->get_data_size(); i += 4){
+					////////////////truncate the first two bytes
+					mydata[i] = 0;
+					mydata[i + 1] = 0;
 				}
+			}else if(mf->get_truncate_ratio() == 4){
 
-				exp_byte = exp_value  + 127;
+				unsigned char top_byte;
+				unsigned char second_byte;
+				unsigned char exp_byte;
+				int exp_value;
+				for(int i = 0; i < data->get_data_size(); i += 4){
+					////////////////truncate the first two bytes
+					mydata[i] = 0;
+					mydata[i + 1] = 0;
 
-				second_byte = second_byte & 96; ///////truncate the last 5 bits, clear the first bit
-				second_byte = second_byte | ( exp_byte << 7 ); ////////assign exp_byte last bit to second_byte first bit
-				mydata[i + 2] = second_byte;
+					second_byte = mydata[i + 2];
+					top_byte = mydata[i + 3];
 
-				top_byte = top_byte & 128; //////////clear the last 7 bits
-				top_byte = top_byte | ( exp_byte >> 1 ); ////////assign exp_byte first 7 bits to top_byte last 7 bits
-				mydata[i + 3] = top_byte;
-			}
+					exp_byte = ( (top_byte & 127) << 1 ) | (second_byte >> 7); //getting bit values for exp bits
+					exp_value = exp_byte - 127;
+
+					if(exp_value == 128 || exp_value == -127){ ///////////////////use zeros for both subnormal and inf cases
+						//do nothing
+					}else{
+						if(exp_value > 0){
+							exp_value = exp_value & 15;
+						}else{
+							exp_value = (exp_value - 1);/////////////0 to -126 correspond -1 to -127 in new format representation, new_format = exp_value - 1.
+							exp_value = exp_value & 15;
+							exp_value = exp_value + 1;
+						}
+					}
+
+					exp_byte = exp_value  + 127;
+
+					second_byte = second_byte & 96; ///////truncate the last 5 bits, clear the first bit
+					second_byte = second_byte | ( exp_byte << 7 ); ////////assign exp_byte last bit to second_byte first bit
+					mydata[i + 2] = second_byte;
+
+					top_byte = top_byte & 128; //////////clear the last 7 bits
+					top_byte = top_byte | ( exp_byte >> 1 ); ////////assign exp_byte first 7 bits to top_byte last 7 bits
+					mydata[i + 3] = top_byte;
+				}
+			}//////////////////////end of: if(get_truncation_scenario() == 0){
+
+		}else if(get_truncation_scenario() == 1){//////////////In scenario 1,
+
 		}
 
 		//////////////write to cache space
@@ -1378,6 +1428,7 @@ enum cache_request_status l1_cache::access(new_addr_type addr, mem_fetch *mf,
 	/////it is treated indifferently as write miss (send write directly). therefore, it is not clear what will happen if the read reply is already on its way back when sending the write.
 	/////key: check when write hit or when write miss evict, if the whole chunk is brought down or not.
 	/////so wb has to write the entire chunk. we and wt's send_write_request(, if can only send the changed, then sending the whole chunk can be avoided.
+	/////If it is a hit at L2, then write evict does not need to send the whole chunk. If it is a miss at L2, then write evict also does not need to send the whole chunk.
 	//////////////todo: 1. do nothing for write miss. ##ok 2. in write op write to both cache and global space. ##ok 3. do nothing for wt, we. ##ok
 	////////////////////4. copy from cache space to global space for wb evicted modified in L2. ##ok 5. make sure read low and write low (not needed if l1 uses we) change approx mark. ##ok
 	////////////////////6. re-execute for l1 hit-approx. ##ok
@@ -1388,6 +1439,11 @@ enum cache_request_status l1_cache::access(new_addr_type addr, mem_fetch *mf,
 	///////////Fortunately, l1 is not wb. If l1 uses wb, for the case of the generated write-back writes from l1, l2 has to mark their prediction status and
 	///////////copy from cache space to global space if l2 also sends them to the dram.
 	//////////////myedit bfloat: (when write approximate cache line back to dram, bfloat seems to be similar as lmc)
+	//////////////When error is caused in L1, we should use the same number of L1 cache spaces as the number of SMs.
+	//////////////When using two separate cache spaces for both L1 and L2, st_impl does not need to write to L1 since it is write evict. And st_impl always write to global space.
+	//////////////st_impl should also directly write to L2, indicating that write evict always write directly to L2.
+	//////////////However, read accurate from L2 or DRAM should use global space (do nothing), read approx from L2 should redo with L2 space.
+	//////////////Read accurate + inject_error_L1 from L2 or DRAM should copy from global to L1 space and inject error, read approx + inject_error_L1 from L2 should copy from L2 space to L1 space and inject error.
 
 	enum cache_request_status access_status = data_cache::access(addr, mf, time, events);
 

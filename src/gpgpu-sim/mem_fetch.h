@@ -197,6 +197,14 @@ public:
 	unsigned get_truncate_ratio() {
 		return truncate_ratio;
 	}
+
+	void set_truncation_scenario(unsigned scenario) {
+		truncation_scenario = scenario;
+	}
+
+	unsigned get_truncation_scenario() {
+		return truncation_scenario;
+	}
 	////////////////myedit bfloat
 
 private:
@@ -207,6 +215,7 @@ private:
 
 	////////////////myedit bfloat
 	unsigned truncate_ratio;
+	unsigned truncation_scenario;
 	////////////////myedit bfloat
 
 	// request source information
