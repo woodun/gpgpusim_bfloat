@@ -1035,13 +1035,12 @@ class l1_cache: public data_cache {
 public:
 	//////////////myeditpredictor
 	/*
-	 l1_cache(shader_core_ctx *core, const char *name, cache_config &config, int core_id, int type_id,
-	 mem_fetch_interface *memport, mem_fetch_allocator *mfcreator,
-	 enum mem_fetch_status status) :
-	 data_cache(name, config, core_id, type_id, memport, mfcreator,
-	 status, L1_WR_ALLOC_R, L1_WRBK_ACC) {
-	 }
+	l1_cache(const char *name, cache_config &config,
+	int core_id, int type_id, mem_fetch_interface *memport,
+	mem_fetch_allocator *mfcreator, enum mem_fetch_status status )
+	: data_cache(name,config,core_id,type_id,memport,mfcreator,status, L1_WR_ALLOC_R, L1_WRBK_ACC){}
 	 */
+
 	l1_cache(class shader_core_ctx *core, const char *name,
 			cache_config &config, int core_id, int type_id,
 			mem_fetch_interface *memport, mem_fetch_allocator *mfcreator,

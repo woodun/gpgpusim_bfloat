@@ -686,6 +686,18 @@ public:
 		m_req_size = size;
 		m_write = wr;
 	}
+
+	////////////////myedit highlight: adding set_atomic and set_correspondance
+	/*
+   mem_access_t( mem_access_type type,
+                 new_addr_type address,
+                 unsigned size,
+                 bool wr,
+                 const active_mask_t &active_mask,
+                 const mem_access_byte_mask_t &byte_mask )
+    : m_warp_mask(active_mask), m_byte_mask(byte_mask) {
+	*/
+
 	mem_access_t(mem_access_type type, new_addr_type address, unsigned size,
 			bool wr, const active_mask_t &active_mask,
 			const mem_access_byte_mask_t &byte_mask, unsigned set_atomic,
@@ -702,6 +714,7 @@ public:
 		thread_correspondance = set_correspondance;
 		////////////////////////////myedit prediction
 	}
+	////////////////myedit highlight
 
 	new_addr_type get_addr() const {
 		return m_addr;

@@ -106,7 +106,7 @@ gpgpu_t::gpgpu_t( const gpgpu_functional_sim_config &config )
 
    global_memory = (unsigned char*)(m_global_mem);
    cache_memory = (unsigned char*)(m_cache_mem);
-    ////////////////myeditCAA
+   ////////////////myeditCAA
 
    m_dev_malloc=GLOBAL_HEAP_START; 
 
@@ -441,6 +441,7 @@ void warp_inst_t::memory_coalescing_arch_13( bool is_write, mem_access_type acce
             transaction_info &info = t->second;
             info.is_atomic = 0;
             ////////////////////////////myedit prediction
+
             memory_coalescing_arch_13_reduce_and_send(is_write, access_type, info, addr, segment_size);
         }
     }

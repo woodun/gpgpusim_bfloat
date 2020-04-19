@@ -86,7 +86,7 @@ unsigned long long gpu_sim_insn;
 ////////////////////myeditpredictor
 
 /////////////myeditamc
-unsigned long long temp_gpu_sim_insn;
+unsigned long long temp_gpu_sim_insn = 0;
 unsigned long long temp_gpu_sim_cycle = 0;
 /////////////myeditamc
 
@@ -415,6 +415,7 @@ void gpgpu_sim_config::reg_options(option_parser_t opp) {
 	option_parser_register(opp, "-gpgpu_deadlock_detect", OPT_BOOL,
 			&gpu_deadlock_detect,
 			"Stop the simulation at deadlock (1=on (default), 0=off)", "0");///////////////myedit AMC
+
 	option_parser_register(opp, "-gpgpu_ptx_instruction_classification",
 			OPT_INT32, &gpgpu_ptx_instruction_classification,
 			"if enabled will classify ptx instruction types per kernel (Max 255 kernels now)",

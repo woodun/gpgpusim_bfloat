@@ -361,14 +361,18 @@ void memory_sub_partition::cache_cycle(unsigned cycle) {
 	// L2 fill responses
 	if (!m_config->m_L2_config.disabled() && !m_config->bypassl2d) { ////////////myedit AMC
 		if (m_L2cache->access_ready() && !m_L2_icnt_queue->full()) {
-			mem_fetch *mf = m_L2cache->next_access();
+			mem_fetch *mf = m_L2cache->next_access(); //////////////myedit highlight: this is the next fill response
 			if (mf->get_access_type() != L2_WR_ALLOC_R) { // Don't pass write allocate read request back to upper level cache
-				mf->set_reply();
+				mf->set_reply(); /////myedit highlight: just to set if it is READ_REPLY or WRITE_ACK. WRITE_ACK is used to: m_core->store_ack(mf); m_warp[warp_id].dec_store_req();
 				mf->set_status(IN_PARTITION_L2_TO_ICNT_QUEUE,
 						gpu_sim_cycle + gpu_tot_sim_cycle);
 				m_L2_icnt_queue->push(mf);
-			} else { ///////////myquestion: for write allocate miss why not set to be MODIFIED?(possibly a bug.)
-				m_request_tracker.erase(mf);
+			} else { ///myquestion: for write allocate miss why not set to be MODIFIED? ///myedit highlight: naive write-miss allocate does not have modified status, data already written through.
+				m_request_tracker.erase(mf);//////myedit highlight: why other cases do not need to acknowledge? Or is it set elsewhere?
+				//////////////////////////////////////////////////// yes, it is set in hit: bool write_sent = was_write_sent(events); if(mf_next->get_inst().is_store() && !write_sent){
+				////////////////////also, for gpgpusim4, set_reply() for write hit in WB policy is newly added in shader.cc.
+				////////////////////for naive FETCH_ON_WRITE, maybe the reply is set at dram since both a write request and a read request are sent.
+
 				delete mf;
 			}
 		}

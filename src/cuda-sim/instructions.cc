@@ -3771,6 +3771,7 @@ void st_impl( const ptx_instruction *pI, ptx_thread_info *thread )
       }
    }
 
+   ///////////////////myedit highlight: write both to cache space and global space
    if( space.get_type() == global_space ){
 	   memory_space *cache = thread->get_cache_memory();
 

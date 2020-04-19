@@ -336,7 +336,8 @@ void tag_array::truncate_float(mem_fetch *mf) { /////////////must make sure it i
 
 		////////power model vampire, drampower
 
-		if(get_truncation_scenario() == 0){//////////////In scenario 0, when truncate truncate float to bfloat?
+		if(mf->get_truncation_scenario() == 0){//////////////In scenario 0, when truncate truncate float to bfloat? ////////////////////myedit highlight: fixed bug, added mf-> later
+
 
 			if(mf->get_truncate_ratio() == 2){/////////In scenario 0, this is float32 to bfloat16. In other scenarios, this code remains the same even when truncate new_float32 to bfloat16.
 				for(int i = 0; i < data->get_data_size(); i += 4){
@@ -385,7 +386,7 @@ void tag_array::truncate_float(mem_fetch *mf) { /////////////must make sure it i
 				}
 			}//////////////////////end of: if(get_truncation_scenario() == 0){
 
-		}else if(get_truncation_scenario() == 1){//////////////In scenario 1,
+		}else if(mf->get_truncation_scenario() == 1){//////////////In scenario 1, ////////////////////myedit highlight: fixed bug, added mf-> later
 
 		}
 
@@ -888,6 +889,8 @@ void baseline_cache::fill(mem_fetch *mf, unsigned time) {
 
 				m_tag_array->truncate_float(mf);	//////////////truncate happens before fill
 			}
+
+			///////////////////////////////m_tag_array->fill(e->second.m_cache_index,time);
 			m_tag_array->fill(e->second.m_cache_index, time,
 					mf->is_approximated());	////////myedit amc  ///////////myeditDSN: both l1 and l2 are marked correctly with prediction status.
 		} else if (m_config.m_alloc_policy == ON_FILL) {
@@ -899,6 +902,8 @@ void baseline_cache::fill(mem_fetch *mf, unsigned time) {
 					//fflush (stdout);
 				m_tag_array->truncate_float(mf);
 			}
+
+			///////////////////////////////m_tag_array->fill(e->second.m_block_addr,time);
 			m_tag_array->fill(e->second.m_block_addr, time,
 					mf->is_approximated());	////////myedit amc  ///////////myeditDSN: both l1 and l2 are marked correctly with prediction status.
 		} else {
@@ -1142,6 +1147,12 @@ enum cache_request_status data_cache::wr_miss_wa(new_addr_type addr, //////////f
 
 			if(m_config.m_write_policy != LOCAL_WB_GLOBAL_WT
 					&& evicted.is_predicted == 1){ ////////////////////only l2 need to do the copy from cache space to global space
+				///////////////////myedit highlight: for a fetch-on-write cache (gtx480), it does not have the modified-words mask, therefore, whole cache line must be written back to the dram.
+				//////////////////////////////////// however, for our favor, we can assume that it does have the modified-words mask, and can switch to write-validate mode (titanx).
+				//////////////////////////////////// just that it uses the fetch-on-write to avoid the unreadable lines when read hit.
+				//////////////////////////////////// if that is the case, then the following code to write the modified predicted line back to the dram when evicted is not required.
+				//////////////////////////////////// this is because in st_impl( in instructions.cc, the modified words are written to both cache and global space already.
+				//////////////////////////////////// so if we only write according to the modified-words mask, copying both the modified part and the remaining predicted part is unnecessary.
 
 				/////////////////////////////read from cache space
 				mem_fetch *data = wb;
@@ -1235,9 +1246,14 @@ enum cache_request_status data_cache::rd_miss_base(new_addr_type addr,
 
 			////////////myeditDSN
 			////////////////////////////////here we only cover the l2 to dram case, because l1 is using we. (we only need to fix l1 if l1 uses wb)
-
 			if(m_config.m_write_policy != LOCAL_WB_GLOBAL_WT
 					&& evicted.is_predicted == 1){ ////////////////////only l2 need to do the copy from cache space to global space
+				///////////////////myedit highlight: for a fetch-on-write cache (gtx480), it does not have the modified-words mask, therefore, whole cache line must be written back to the dram.
+				//////////////////////////////////// however, for our favor, we can assume that it does have the modified-words mask, and can switch to write-validate mode (titanx).
+				//////////////////////////////////// just that it uses the fetch-on-write to avoid the unreadable lines when read hit.
+				//////////////////////////////////// if that is the case, then the following code to write the modified predicted line back to the dram when evicted is not required.
+				//////////////////////////////////// this is because in st_impl( in instructions.cc, the modified words are written to both cache and global space already.
+				//////////////////////////////////// so if we only write according to the modified-words mask, copying both the modified part and the remaining predicted part is unnecessary.
 
 				/////////////////////////////read from cache space
 				mem_fetch *data = wb;
@@ -1263,6 +1279,7 @@ enum cache_request_status data_cache::rd_miss_base(new_addr_type addr,
 				/////////////////////////////write to global space
 			}
 			////////////myeditDSN
+
 		}
 		return MISS;
 	}
@@ -1443,7 +1460,8 @@ enum cache_request_status l1_cache::access(new_addr_type addr, mem_fetch *mf,
 	//////////////When using two separate cache spaces for both L1 and L2, st_impl does not need to write to L1 since it is write evict. And st_impl always write to global space.
 	//////////////st_impl should also directly write to L2, indicating that write evict always write directly to L2.
 	//////////////However, read accurate from L2 or DRAM should use global space (do nothing), read approx from L2 should redo with L2 space.
-	//////////////Read accurate + inject_error_L1 from L2 or DRAM should copy from global to L1 space and inject error, read approx + inject_error_L1 from L2 should copy from L2 space to L1 space and inject error.
+	//////////////Read accurate + inject_error_L1 from L2 or DRAM should copy from global to L1 space and inject error,
+	//////////////read approx + inject_error_L1 from L2 should copy from L2 space to L1 space and inject error.
 
 	enum cache_request_status access_status = data_cache::access(addr, mf, time, events);
 
@@ -1518,7 +1536,7 @@ enum cache_request_status l2_cache::access(new_addr_type addr, mem_fetch *mf,
 	//////////////myeditDSN: process l2 hit approx
 	enum cache_request_status access_status = data_cache::access(addr, mf, time, events);
 
-	if (access_status == HIT && mf->get_access_type() == GLOBAL_ACC_R ) { //////////hit a predicted data, then redo the load with data from cache space
+	if (access_status == HIT && mf->get_access_type() == GLOBAL_ACC_R ) { //////////hit a predicted data, then return a predicted data to the higher level
 
 		//////////get cache_index
 		new_addr_type block_addr = m_config.block_addr(addr);

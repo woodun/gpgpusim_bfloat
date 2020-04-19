@@ -2903,7 +2903,10 @@ bool ldst_unit::memory_cycle(warp_inst_t &inst,
 	const mem_access_t &access = inst.accessq_back();
 
 	bool bypassL1D = false;
-	if (CACHE_GLOBAL == inst.cache_op || (m_L1D == NULL)) { ///////////myedit prediction
+
+	//if (CACHE_GLOBAL == inst.cache_op || (m_L1D == NULL) ) {
+	if (CACHE_GLOBAL == inst.cache_op || (m_L1D == NULL) || m_config->bypassl1d ) { ///////////myedit highlight: added || m_config->bypassl1d
+
 		bypassL1D = true;
 	} else if (inst.space.is_global()) { // global memory access
 // skip L1 cache if the option is enabled
@@ -3294,7 +3297,7 @@ void ldst_unit::writeback() {
 				} /////end of: if (mf->is_approximated())
 				//////////////myeditDSN
 
-				m_next_wb = mf->get_inst();	//////////////one writeback is just one access of this instruction.
+				m_next_wb = mf->get_inst();	//////////////one writeback is just one access of this instruction. ////myedit highlight: warp_inst_t m_next_wb;
 				delete mf;
 				serviced_client = next_client;
 			}
